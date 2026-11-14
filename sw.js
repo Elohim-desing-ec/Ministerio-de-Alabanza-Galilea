@@ -3,7 +3,7 @@
    Estrategia: primero la red (siempre lo más nuevo) y, si no hay conexión,
    lo guardado. Las tipografías y el lector de PDF se guardan al usarse.
    ========================================================================= */
-const CACHE = 'selah-galilea-v3';
+const CACHE = 'selah-galilea-v4';
 const SHELL = [
   "./",
   "assets/icon-180.png",
@@ -38,6 +38,7 @@ const SHELL = [
   "js/core/actions.js",
   "js/core/auth.js",
   "js/core/chords.js",
+  "js/core/cloud.js",
   "js/core/importer.js",
   "js/core/model.js",
   "js/core/namespace.js",
@@ -81,7 +82,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
-  const allowed = sameOrigin || /fonts\.(googleapis|gstatic)\.com$|cdnjs\.cloudflare\.com$/.test(url.hostname);
+  const allowed = sameOrigin || /fonts\.(googleapis|gstatic)\.com$|cdnjs\.cloudflare\.com$|cdn\.jsdelivr\.net$/.test(url.hostname);
   if (!allowed) return; // APIs de IA y otros servicios: siempre por red
 
   e.respondWith(

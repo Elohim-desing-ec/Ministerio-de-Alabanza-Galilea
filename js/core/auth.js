@@ -81,11 +81,23 @@
   }
 
   const auth = {
+    /** ¿Esta persona puede entrar a la app? Devuelve su usuario o null. */
+    accountOf(member) {
+      if (!member) return null;
+      if (App.cloud && App.cloud.enabled) { const p = App.cloud.profileOf(member.id); return p ? p.usuario : null; }
+      const fixed = (App.config.auth.users || []).find((x) => x.memberId === member.id);
+      return fixed ? fixed.username : member.account ? member.account.username : null;
+    },
+
     sha256,
     accountHash,
     normUser,
 
     current() {
+      if (App.cloud && App.cloud.enabled) {
+        const p = App.cloud.profile;
+        return p ? { memberId: p.member_id, username: p.usuario, leader: p.es_lider } : null;
+      }
       const s = readSession();
       if (!s) return null;
       if (!App.store.state.members.some((m) => m.id === s.memberId)) return null;
@@ -94,6 +106,13 @@
 
     /** Devuelve el miembro si las credenciales son correctas; si no, null. */
     async login(username, password) {
+      if (App.cloud && App.cloud.enabled) {
+        const p = await App.cloud.signIn(username, password); // lanza error con mensaje claro
+        try { await App.cloud.pull(); } catch (e) { /* sin conexión: datos guardados */ }
+        App.store.update((s) => { s.session.userId = p.member_id; }, { silent: true, remote: true });
+        App.cloud.startRealtime();
+        return App.store.state.members.find((m) => m.id === p.member_id) || { id: p.member_id, name: p.usuario };
+      }
       const u = normUser(username);
       if (!u || !password) return null;
       let memberId = null;
@@ -113,7 +132,8 @@
       return member;
     },
 
-    logout() {
+    async logout() {
+      if (App.cloud && App.cloud.enabled) await App.cloud.signOut();
       App.storage.remove(SESSION_KEY);
       location.hash = '';
       location.reload();
@@ -122,12 +142,14 @@
     /** ¿El usuario ya está en uso? (por otra persona o por un líder fijo) */
     usernameTaken(username, exceptMemberId) {
       const u = normUser(username);
+      if (App.cloud && App.cloud.enabled) return App.cloud.profiles.some((p) => p.usuario === u && p.member_id !== exceptMemberId);
       if ((App.config.auth.users || []).some((x) => x.username === u && x.memberId !== exceptMemberId)) return true;
       return App.store.state.members.some((m) => m.id !== exceptMemberId && m.account && m.account.username === u);
     },
 
     /** ¿Esta persona tiene una cuenta fija definida en config.js? */
     fixedAccount(memberId) {
+      if (App.cloud && App.cloud.enabled) return null;
       return (App.config.auth.users || []).find((x) => x.memberId === memberId) || null;
     }
   };

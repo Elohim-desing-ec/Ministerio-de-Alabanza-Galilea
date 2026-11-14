@@ -53,6 +53,7 @@
     update(mutator, opts = {}) {
       mutator(state);
       saveSoon();
+      if (!opts.remote && App.cloud && App.cloud.active) App.cloud.queuePush();
       if (!opts.silent) emit(opts);
     },
 

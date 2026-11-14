@@ -30,16 +30,26 @@ Está hecha con HTML, CSS y JavaScript puros. No hay que instalar ni compilar na
 | **Asistente** | Arma setlists, completa el equipo, transpone, revisa disponibilidad, crea eventos y sugiere palabras de transición. Todo cambio se aplica con un botón. |
 | **Ajustes** | Nombre de la iglesia, tema claro/oscuro, notación, IA, respaldo y restablecer demo. |
 
-## Acceso
+## Acceso y base de datos
 
-- La app empieza vacía, solo con Byron como líder, para cargar al equipo real.
+La app guarda todo en una base de datos compartida (Supabase), así cada persona entra desde su propio celular y todos ven lo mismo, en vivo.
+
 - El líder de alabanza entra con el usuario **byron** y la contraseña que se le entregó.
-- Solo el líder agrega o modifica personas, canciones y eventos. Los músicos confirman, marcan sus fechas no disponibles, eligen instrumento y usan el chat.
-- El líder crea el usuario y la contraseña de cada persona en **Equipo → (persona) → Editar → Acceso a la app**.
-- Quien toca varios instrumentos elige cuál toca cada día desde su tarjeta en **Inicio** o desde el evento.
+- Solo el líder agrega o modifica personas, canciones y eventos, y crea el **usuario y la contraseña** de cada persona en **Equipo → (persona) → Editar → Acceso a la app**.
+- Los músicos confirman su asistencia, eligen qué instrumento tocan ese día, marcan sus fechas no disponibles y usan el chat.
 - El líder puede **ver la app como otra persona** (menú con su nombre) para revisar lo que ve cada músico.
+- Cada celular guarda una copia para abrir sin conexión; al volver la señal, se pone al día solo. El punto junto al nombre indica si está *Sincronizado*, *Guardando…* o *Sin conexión*.
 
-> Esta es una puerta de demostración: sin base de datos, todo se verifica en el navegador y las cuentas que crea el líder funcionan solo en el navegador donde se crearon. Para cuentas reales en todos los celulares hay que conectar una base de datos con inicio de sesión (por ejemplo, Supabase).
+### Cómo está armada la base
+
+- Proyecto de Supabase **elohim-inventario**, en tablas propias que empiezan con `galilea_` (no toca las tablas del inventario).
+- `galilea_items`: personas, canciones, eventos, mensajes, equipos y ajustes (una fila por cada uno).
+- `galilea_perfiles`: quién puede entrar y quién es líder.
+- Reglas de seguridad (RLS): solo quien tiene perfil en Galilea puede ver los datos; solo los líderes cambian personas, canciones y eventos; los músicos solo pueden actualizar eventos (confirmar), su propia ficha y el chat.
+- Función del servidor `galilea-usuarios`: crea, cambia y borra cuentas. Solo responde a líderes.
+- Las cuentas usan correos internos `usuario@galilea.example.com`; nadie recibe correos.
+
+Si se borra la sección `supabase` de `js/config.js`, la app vuelve a funcionar solo en el navegador (modo demo).
 
 ## Asistente de IA (gratis)
 
@@ -70,8 +80,9 @@ js/
   core/
     namespace.js        objeto global App
     utils.js            fechas, texto
-    store.js            estado y guardado (App.storage)
-    auth.js             inicio de sesión de demostración
+    store.js            estado y copia local (App.storage)
+    cloud.js            base de datos compartida (Supabase) y cambios en vivo
+    auth.js             inicio de sesión
     importer.js         lectura de canciones (LaCuerda.net y similares)
     model.js            consultas (conflictos, carga de servicio…)
     actions.js          todos los cambios de datos
@@ -95,9 +106,10 @@ manifest.webmanifest    datos de la app instalable
 - **Agregar una pantalla:** crea `js/views/mi-pantalla.js` con `App.views.mipantalla = { title, render(root, param) }`, su CSS en `css/views/`, y enlázala en `index.html` y en `NAV` de `js/app.js`.
 - **Agregar otro proveedor de IA:** crea un archivo en `js/ai/providers/` que llame a `App.ai.register({ id, label, available, ask })`.
 
-### Próximo paso: datos compartidos para todo el equipo
+### Próximos pasos posibles
 
-En la demo cada navegador guarda su propia copia. Para que todo el ministerio vea lo mismo en tiempo real, con inicio de sesión y notificaciones, hay que conectar un servidor. Todo el guardado pasa por `App.storage` en `js/core/store.js`, así que se puede cambiar por Supabase, Firebase o una API propia sin tocar las pantallas.
+- Notificaciones al celular cuando te asignan a un servicio.
+- Proyecto de Supabase propio para Galilea (hoy comparte proyecto con el inventario por el límite del plan gratis).
 
 ## Canciones de ejemplo
 

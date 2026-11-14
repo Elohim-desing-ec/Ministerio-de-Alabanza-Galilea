@@ -100,7 +100,7 @@
     const prefs = App.store.state.prefs;
     const steps = [
       { done: M.members().length > 1, title: 'Agrega a tu equipo', text: 'Cantantes, músicos y técnicos con sus instrumentos.', act: 'add-member', cta: 'Agregar persona' },
-      { done: M.members().some((m) => m.account), title: 'Crea sus usuarios', text: 'En Equipo, abre a cada persona y dale usuario y contraseña.', act: 'go-team', cta: 'Ir a Equipo' },
+      { done: M.members().filter((m) => App.auth.accountOf(m)).length > 1, title: 'Crea sus usuarios', text: 'En Equipo, abre a cada persona y dale usuario y contraseña.', act: 'go-team', cta: 'Ir a Equipo' },
       { done: M.songs().length > 0, title: 'Importa tus canciones', text: 'Sube los PDF de LaCuerda.net con letra y acordes.', act: 'import', cta: 'Importar PDF' },
       { done: M.events().length > 0, title: 'Programa el primer servicio', text: 'Fecha, setlist y quién sirve.', act: 'new-event', cta: 'Nuevo evento' },
       { done: App.pwa.isStandalone(), title: 'Instala la app en tu celular', text: 'Queda con su ícono, sin Play Store ni App Store.', act: 'install', cta: 'Instalar' }

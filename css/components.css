@@ -409,3 +409,11 @@ body { overscroll-behavior-y: none; }
 @media (display-mode: standalone) {
   .main { padding-top: var(--sp-4); }
 }
+
+/* iPhone/Android: el modal usa la altura visible real (sin la barra del navegador),
+   así los botones Guardar/Agregar nunca quedan tapados. */
+.overlay { bottom: auto; height: 100vh; height: 100dvh; }
+@media (max-width: 640px) {
+  .modal, .modal--lg { max-height: calc(100dvh - 24px); }
+  .modal-foot { padding-bottom: max(var(--sp-4), env(safe-area-inset-bottom, 0px)); position: sticky; bottom: 0; background: var(--surface); }
+}

@@ -178,3 +178,13 @@
 .main-col { min-width: 0; display: flex; flex-direction: column; }
 .top-user { display: grid; place-items: center; border-radius: 50%; }
 body.no-scroll { overflow: hidden; }
+
+/* ---- Estado de la base de datos ---- */
+.sync { display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; font-size: var(--fs-xs); color: var(--ink-3); }
+.sync--compact { padding: 0 4px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex-shrink: 0; }
+.sync[data-state="ok"] .sync-dot { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.sync[data-state="syncing"] .sync-dot { background: var(--accent-text); animation: typing 1s infinite var(--ease); }
+.sync[data-state="offline"] .sync-dot { background: var(--warn); }
+.sync[data-state="error"] .sync-dot { background: var(--bad); }
+.login-card--wait { align-items: center; text-align: center; }

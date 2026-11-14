@@ -149,10 +149,50 @@
     U.$('#top-user').addEventListener('click', userMenu);
   }
 
-  function boot() {
+  function syncIndicator() {
+    if (!App.cloud || !App.cloud.enabled) return;
+    const LABEL = { ok: 'Sincronizado', syncing: 'Guardando…', offline: 'Sin conexión', error: 'No se pudo guardar', idle: 'Conectando…' };
+    const paint = (st) => U.$$('[data-sync]').forEach((el) => {
+      el.hidden = false;
+      el.dataset.state = st;
+      el.title = LABEL[st] || st;
+      const t = el.querySelector('.sync-text');
+      if (t) t.textContent = LABEL[st] || st;
+    });
+    paint(App.cloud.status);
+    App.cloud.onStatus(paint);
+  }
+
+  function splash(text) {
+    U.$('#login-root').innerHTML = `<main class="login"><section class="login-card login-card--wait"><span class="login-mark">${I('logo', 30)}</span><p class="muted">${esc(text)}</p><span class="typing"><span></span><span></span><span></span></span></section></main>`;
+  }
+
+  async function boot() {
     App.pwa.register();
     App.store.init();
     App.applyTheme(App.store.state.prefs.theme);
+
+    // ---- Con base de datos compartida ----
+    if (App.cloud && App.cloud.enabled) {
+      document.body.classList.add('is-locked');
+      splash('Conectando con el ministerio…');
+      let profile = null;
+      try { profile = await App.cloud.restore(); } catch (e) { profile = null; }
+      if (profile) {
+        try { await App.cloud.pull(); } catch (e) { ui.toast('Sin conexión: ves lo último guardado en este celular.', { kind: 'info', timeout: 5000 }); }
+        App.store.update((s) => { s.session.userId = profile.member_id; }, { silent: true, remote: true });
+        App.cloud.startRealtime();
+        U.$('#login-root').innerHTML = '';
+        document.body.classList.remove('is-locked');
+        start();
+      } else {
+        App.login.show(() => start());
+      }
+      syncIndicator();
+      return;
+    }
+
+    // ---- Solo en este navegador ----
     const session = App.auth.current();
     if (session) {
       App.store.update((s) => { if (!s.members.some((m) => m.id === s.session.userId)) s.session.userId = session.memberId; }, { silent: true });

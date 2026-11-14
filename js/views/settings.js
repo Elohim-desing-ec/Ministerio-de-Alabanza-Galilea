@@ -116,11 +116,13 @@
 
             <section class="panel">
               <h2 class="panel-title">${I('copy', 16)} Datos</h2>
-              <p class="small muted">En esta demo los datos viven en este navegador. Para compartirlos con todo el equipo en tiempo real, conecta un servidor (ver README).</p>
+              <p class="small muted">${App.cloud && App.cloud.enabled
+                ? 'Los datos se guardan en la base de datos del ministerio y llegan en vivo a todos los celulares. Este celular guarda una copia para abrir sin conexión.'
+                : 'Los datos viven solo en este navegador. Para compartirlos con todo el equipo, conecta la base de datos (ver README).'}</p>
               <div class="row">
                 <button class="btn btn--ghost btn--sm" data-act="export">${I('copy', 14)} Copiar respaldo</button>
-                ${leader ? `<button class="btn btn--ghost btn--sm" data-act="import">${I('arrow-down', 14)} Restaurar respaldo</button>
-                <button class="btn btn--ghost btn--sm" data-act="demo">${I('sparkle', 14)} Cargar datos de ejemplo</button>
+                ${leader ? `<button class="btn btn--ghost btn--sm" data-act="import">${I('arrow-down', 14)} Restaurar respaldo</button>` : ''}
+                ${leader && !(App.cloud && App.cloud.enabled) ? `<button class="btn btn--ghost btn--sm" data-act="demo">${I('sparkle', 14)} Cargar datos de ejemplo</button>
                 <button class="btn btn--danger btn--sm" data-act="reset">${I('refresh', 14)} Empezar de cero</button>` : ''}
               </div>
               <dl class="dl small">
@@ -219,7 +221,7 @@
             ui.modal({
               title: 'Restaurar respaldo',
               size: 'lg',
-              body: '<p class="small muted">Pega aquí el texto de un respaldo. Reemplazará todos los datos de este navegador.</p><label class="sr-only" for="imp-json">Respaldo</label><textarea class="textarea textarea--code" id="imp-json" placeholder="{ &quot;version&quot;: 1, … }"></textarea>',
+              body: `<p class="small muted">Pega aquí el texto de un respaldo. Reemplazará todos los datos${App.cloud && App.cloud.enabled ? ' del ministerio para todo el equipo' : ' de este navegador'}.</p><label class="sr-only" for="imp-json">Respaldo</label><textarea class="textarea textarea--code" id="imp-json" placeholder="{ &quot;version&quot;: 1, … }"></textarea>`,
               actions: [
                 { label: 'Cancelar', kind: 'ghost' },
                 {

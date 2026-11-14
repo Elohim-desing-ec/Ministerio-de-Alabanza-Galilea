@@ -20,7 +20,14 @@
   M.settings = () => S().settings;
 
   M.me = () => M.member(S().session.userId) || S().members[0];
-  M.isLeader = (m = M.me()) => !!(m && (m.leader || m.admin));
+  M.isLeader = (m = M.me()) => {
+    if (!m) return false;
+    if (App.cloud && App.cloud.enabled) {
+      const p = App.cloud.profileOf(m.id);
+      if (p) return !!p.es_lider;
+    }
+    return !!(m.leader || m.admin);
+  };
   M.can = (action) => {
     const me = M.me();
     if (action === 'edit') return M.isLeader(me);

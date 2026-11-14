@@ -32,7 +32,7 @@
                 </div>
               </div>
               <p class="login-error" id="lg-error" role="alert" hidden></p>
-              <button class="btn btn--primary login-btn" type="submit">Entrar ${I('arrow-right', 16)}</button>
+              <button class="btn btn--primary login-btn" type="submit"><span class="lbl">Entrar</span> ${I('arrow-right', 16)}</button>
             </form>
             <p class="xsmall faint login-foot">${esc(App.config.appName)} · versión demo. ¿No tienes usuario? Pídeselo al líder de alabanza.</p>
           </section>
@@ -60,10 +60,14 @@
           return;
         }
         btn.disabled = true;
-        const member = await App.auth.login(fd.get('username'), fd.get('password'));
+        btn.querySelector('.lbl').textContent = 'Entrando…';
+        let member = null;
+        let message = 'Usuario o contraseña incorrectos. Revisa mayúsculas y espacios.';
+        try { member = await App.auth.login(fd.get('username'), fd.get('password')); } catch (e2) { message = e2.message || message; }
         btn.disabled = false;
+        btn.querySelector('.lbl').textContent = 'Entrar';
         if (!member) {
-          err.textContent = 'Usuario o contraseña incorrectos. Revisa mayúsculas y espacios.';
+          err.textContent = message;
           err.hidden = false;
           pass.select();
           return;

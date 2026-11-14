@@ -29,7 +29,7 @@
             <span class="strong truncate">${esc(m.name)}</span>
             <span class="xsmall faint">${(m.teams || []).map((t) => esc((M.team(t) || {}).name || '')).join(' · ') || 'Sin equipo'}</span>
           </div>
-          ${M.isLeader() && (m.account || App.auth.fixedAccount(m.id)) ? `<span class="acc-badge" title="Tiene usuario para entrar">${I('key', 13)}</span>` : ''}
+          ${M.isLeader() && App.auth.accountOf(m) ? `<span class="acc-badge" title="Tiene usuario para entrar">${I('key', 13)}</span>` : ''}
           ${M.isLeader(m) ? `<span class="leader-badge" title="Líder">${I('crown', 13)}</span>` : ''}
         </div>
         <div class="chip-row">${m.roles.map((r) => `<span class="tag">${I(M.groupIcon(r), 12)}&nbsp;${esc(M.posLabel(r))}</span>`).join('')}</div>
@@ -92,7 +92,7 @@
         <section class="stack-sm">
           <h3 class="eyebrow">Contacto</h3>
           <div class="contact-row">${I('phone', 15)}<span class="mono grow" style="user-select:all">${esc(m.phone || '—')}</span><button class="btn btn--plain btn--sm" data-copy="${esc(m.phone || '')}">${I('copy', 14)} Copiar</button></div>
-          ${leader && (m.account || App.auth.fixedAccount(m.id)) ? `<div class="contact-row">${I('key', 15)}<span class="grow">Usuario <span class="mono strong">${esc((m.account || App.auth.fixedAccount(m.id)).username)}</span></span></div>` : ''}
+          ${leader && App.auth.accountOf(m) ? `<div class="contact-row">${I('key', 15)}<span class="grow">Usuario <span class="mono strong">${esc(App.auth.accountOf(m))}</span></span></div>` : ''}
           <div class="contact-row">${I('mail', 15)}<span class="grow truncate" style="user-select:all">${esc(m.email || '—')}</span><button class="btn btn--plain btn--sm" data-copy="${esc(m.email || '')}">${I('copy', 14)} Copiar</button></div>
         </section>
 
@@ -141,23 +141,59 @@
   // ---------------------------------------------------------------------
   // Formulario de persona
   // ---------------------------------------------------------------------
+  const cloudOn = () => App.cloud && App.cloud.enabled;
+
   function accountSection(m) {
     const fixed = m.id && App.auth.fixedAccount(m.id);
     if (fixed) {
       return `<fieldset class="field account-box"><legend class="field-label">${I('key', 14)} Acceso a la app</legend>
         <p class="small muted">Usuario <span class="mono">${esc(fixed.username)}</span>. Es la cuenta principal del líder; se cambia en <span class="mono">js/config.js</span>.</p></fieldset>`;
     }
-    const acc = m.account;
+    const username = App.auth.accountOf(m);
+    const isSelf = cloudOn() && m.id === (App.cloud.profile || {}).member_id;
     return `
       <fieldset class="field account-box">
         <legend class="field-label">${I('key', 14)} Acceso a la app</legend>
-        <label class="check"><input type="checkbox" name="hasAccount" ${acc ? 'checked' : ''}> Puede entrar con usuario y contraseña</label>
+        ${isSelf ? '<input type="hidden" name="hasAccount" value="on">' : `<label class="check"><input type="checkbox" name="hasAccount" ${username ? 'checked' : ''}> Puede entrar con usuario y contraseña</label>`}
         <div class="field-row">
-          <div class="field"><label class="field-label" for="mf-user">Usuario</label><input class="input mono" id="mf-user" name="username" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ej. joel" value="${esc(acc ? acc.username : '')}"></div>
-          <div class="field"><label class="field-label" for="mf-pass">${acc ? 'Nueva contraseña' : 'Contraseña'}</label><input class="input mono" id="mf-pass" name="password" type="text" autocomplete="new-password" placeholder="${acc ? 'Vacío = no cambiarla' : 'Mínimo 6 caracteres'}"></div>
+          <div class="field"><label class="field-label" for="mf-user">Usuario</label><input class="input mono" id="mf-user" name="username" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ej. joel" value="${esc(username || '')}"></div>
+          <div class="field"><label class="field-label" for="mf-pass">${username ? 'Nueva contraseña' : 'Contraseña'}</label><input class="input mono" id="mf-pass" name="password" type="text" autocomplete="new-password" placeholder="${username ? 'Vacío = no cambiarla' : 'Mínimo 6 caracteres'}"></div>
         </div>
-        <p class="field-hint">Entrega el usuario y la contraseña a la persona. Mientras no haya base de datos, la cuenta funciona en este navegador; para entrar desde cualquier celular hay que conectar la base de datos.</p>
+        <p class="field-hint">${cloudOn()
+          ? 'Entrega el usuario y la contraseña a la persona: podrá entrar desde cualquier celular o computadora.'
+          : 'Entrega el usuario y la contraseña a la persona. Sin base de datos, la cuenta funciona solo en este navegador.'}</p>
       </fieldset>`;
+  }
+
+  /** Crea, cambia o quita la cuenta en la base de datos. Devuelve un texto para el aviso o lanza un error. */
+  async function syncCloudAccount(memberId, fd, isLeader) {
+    const profile = App.cloud.profileOf(memberId);
+    const wants = fd.get('hasAccount') === 'on';
+    const username = App.auth.normUser(fd.get('username') || '');
+    const password = String(fd.get('password') || '');
+    if (wants) {
+      if (!/^[a-z0-9._-]{3,30}$/.test(username)) throw new Error('El usuario debe tener de 3 a 30 letras o números, sin espacios.');
+      if (App.auth.usernameTaken(username, memberId)) throw new Error('Ese usuario ya existe. Elige otro.');
+      if (!profile) {
+        if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.');
+        await App.cloud.users('crear', { usuario: username, password, member_id: memberId, es_lider: isLeader });
+        return `ya puede entrar con el usuario "${username}"`;
+      }
+      const patch = {};
+      if (username !== profile.usuario) patch.usuario = username;
+      if (password) { if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.'); patch.password = password; }
+      if (isLeader !== profile.es_lider) patch.es_lider = isLeader;
+      if (Object.keys(patch).length) {
+        await App.cloud.users('actualizar', Object.assign({ member_id: memberId }, patch));
+        return patch.password ? 'tiene contraseña nueva' : 'tiene su acceso actualizado';
+      }
+      return null;
+    }
+    if (profile) {
+      await App.cloud.users('borrar', { member_id: memberId });
+      return 'ya no puede entrar a la app';
+    }
+    return null;
   }
 
   App.forms.member = function memberForm(existing) {
@@ -192,8 +228,13 @@
         ...(existing ? [{ label: 'Quitar del equipo', kind: 'danger', icon: 'trash', spacer: true, onClick: async () => {
           if (existing.id === M.me().id) { ui.toast('No puedes quitarte a ti mismo mientras usas la app.', { kind: 'warn' }); return false; }
           const ok = await ui.confirm({ title: 'Quitar del equipo', message: `${existing.name} saldrá del equipo y de los puestos asignados.`, confirmLabel: 'Quitar', danger: true });
-          if (ok) { A.deleteMember(existing.id); ui.toast('Persona quitada del equipo.'); }
-          return ok;
+          if (!ok) return false;
+          if (cloudOn() && App.cloud.profileOf(existing.id)) {
+            try { await App.cloud.users('borrar', { member_id: existing.id }); } catch (err) { ui.toast(err.message, { kind: 'warn' }); return false; }
+          }
+          A.deleteMember(existing.id);
+          ui.toast('Persona quitada del equipo.');
+          return true;
         } }] : []),
         { label: 'Cancelar', kind: 'ghost' },
         {
@@ -205,7 +246,29 @@
             const roles = fd.getAll('roles');
             if (!roles.length) { ui.toast('Marca al menos un puesto.', { kind: 'warn' }); return false; }
 
-            // Cuenta de acceso
+            const ordered0 = (m.roles || []).filter((r) => roles.includes(r)).concat(roles.filter((r) => !(m.roles || []).includes(r)));
+            const isLeader = fd.get('leader') === 'on';
+
+            // ---- Con base de datos: la cuenta la crea el servidor ----
+            if (cloudOn()) {
+              if (!m.id) m.id = U.uid('m');
+              const btn = api.foot.querySelector('.btn--primary');
+              btn.disabled = true;
+              let note = null;
+              try {
+                note = await syncCloudAccount(m.id, fd, isLeader);
+              } catch (err) {
+                btn.disabled = false;
+                ui.toast(err.message, { kind: 'warn', timeout: 6000 });
+                return false;
+              }
+              delete m.account;
+              A.saveMember(Object.assign(m, { name: fd.get('name').trim(), phone: fd.get('phone').trim(), email: fd.get('email').trim(), roles: ordered0, teams: fd.getAll('teams'), leader: isLeader }));
+              ui.toast(note ? `Listo. ${m.name} ${note}.` : existing ? 'Datos guardados.' : `${m.name} se unió al equipo.`);
+              return true;
+            }
+
+            // ---- Sin base de datos (solo este navegador) ----
             let account = m.account || null;
             let created = null;
             if (!App.auth.fixedAccount(m.id)) {

@@ -17,7 +17,17 @@ App.config = {
   storageKey: 'selah-galilea-v2',
   aiStorageKey: 'selah-ai-v1',
 
-  // Acceso de demostración. El líder principal entra con su usuario y
+  // Base de datos compartida (Supabase). La clave "anon" es pública por diseño:
+  // la seguridad la ponen las reglas (RLS) de las tablas galilea_*.
+  // Deja url vacío para usar la app solo en el navegador (sin base de datos).
+  supabase: {
+    url: 'https://kucrypxgjptsdjxsmvce.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Y3J5cHhnanB0c2RqeHNtdmNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTk5NTksImV4cCI6MjEwOTM3NTk1OX0.64ZWNzo2ncHF_X31A3kbCC-JMRAJgJN1KXZcmnOm3VE',
+    emailDomain: 'galilea.example.com',
+    usersFunction: 'galilea-usuarios'
+  },
+
+  // Acceso de demostración (solo si no hay base de datos). El líder principal entra con su usuario y
   // contraseña; las demás cuentas las crea el líder desde "Equipo".
   // passwordHash = SHA-256 de "selah:" + contraseña en minúsculas y sin espacios.
   auth: {
