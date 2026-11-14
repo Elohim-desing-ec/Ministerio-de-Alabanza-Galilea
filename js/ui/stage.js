@@ -8,7 +8,7 @@
    S desplazamiento automático · Esc sale.
    ========================================================================= */
 (function () {
-  const U = App.utils, M = App.model, I = App.icon, esc = U.esc, P = App.practice;
+  const U = App.utils, M = App.model, I = App.icon, esc = U.esc, P = App.practice, F = App.follow;
   const NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
   let el = null;
@@ -16,6 +16,10 @@
   let raf = null;
   let wakeLock = null;
   let unsub = null;
+  let unsubF = null;
+
+  const fmtT = (t) => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`; };
+  const followOn = () => { const c = curItem(); return !!(c && F.isActive(c.song.id)); };
 
   function items() {
     if (st.eventId) {
@@ -168,17 +172,134 @@
       <p class="sp-note">Las pistas se arman con los acordes de la hoja, en el tono y el tempo que elijas: no ocupan espacio ni se descargan. Toca un acorde de la letra para empezar desde ahí.</p>`;
   }
 
+  function micHTML() {
+    const mic = F.mic;
+    if (mic.status === 'listening') {
+      return `<div class="fl-mic is-on"><span class="fl-mic-dot"></span><div class="grow stack-sm"><strong>Escuchando la música… <span id="fl-left">${Math.ceil(mic.left)}</span> s</strong><div class="fl-meter"><span id="fl-level" style="width:${Math.round(mic.level * 100)}%"></span></div></div><button class="sp-chip" data-fl="mic-stop">Cancelar</button></div>`;
+    }
+    if (mic.status === 'analyzing') return '<div class="fl-mic"><span class="typing"><span></span><span></span><span></span></span><span>Calculando el tempo…</span></div>';
+    if (mic.status === 'ready') {
+      return `<div class="fl-mic is-ok">${I('check', 18)}<div class="grow stack-sm"><strong>${Math.round(mic.bpm)} BPM detectados</strong><span class="xsmall sp-dim">El metrónomo arrancó a tiempo con la música. Toca una línea de la letra para empezar desde ahí. Si se desfasa, vuelve a escuchar.</span></div></div>
+        <div class="sp-row sp-toggles"><button class="sp-chip" data-fl="mic">${I('refresh', 13)} Volver a escuchar</button><button class="sp-chip" data-fl="nudge-">−20 ms</button><button class="sp-chip" data-fl="nudge+">+20 ms</button><button class="sp-chip" data-fl="mic-stop">${I('stop', 12)} Parar</button></div>`;
+    }
+    if (mic.status === 'error') return `<p class="small sp-warn">${esc(mic.error)}</p>`;
+    return '';
+  }
+
+  function followHTML(s) {
+    const fs = F.state;
+    const mine = fs.songId === s.id;
+    const leader = M.isLeader();
+    if (mine && fs.status === 'ready') {
+      const an = fs.an;
+      const bpm = Math.round(an.bpm);
+      const clickVol = P.mix.click.mute ? 0 : Math.round(P.mix.click.vol * 100);
+      return `
+        <div class="fl-card">
+          <div class="fl-head">
+            <span class="fl-icon">${I('headphones', 18)}</span>
+            <div class="grow stack-sm"><strong class="truncate">${esc(fs.name)}</strong><span class="xsmall sp-dim">${fmtT(fs.duration)} · ${fs.saved ? 'guardado en este celular' : 'solo por ahora'}</span></div>
+            <button class="sp-chip" data-fl="remove">${I('trash', 13)} Quitar</button>
+          </div>
+          <div class="fl-bpm">
+            <div class="stack-sm"><span class="fl-bpm-num mono">${bpm}</span><span class="tr-lbl">BPM detectado</span></div>
+            <span class="fl-conf fl-conf--${esc(an.confidence)}">Confianza ${esc(an.confidence)}</span>
+          </div>
+          <div class="sp-row sp-toggles">
+            <button class="sp-chip" data-fl="half" title="Si el click va el doble de rápido">÷2</button>
+            <button class="sp-chip" data-fl="double" title="Si el click va a la mitad">×2</button>
+            <button class="sp-chip" data-fl="shift" title="Si el 1 del compás cae en otro pulso">Mover el 1</button>
+          </div>
+          ${leader && bpm !== s.bpm ? `<button class="stage-btn" data-fl="save-bpm">${I('check', 14)} Guardar ${bpm} BPM en la canción</button>` : ''}
+        </div>
+
+        <div class="fl-sec">
+          <h4>${I('text', 14)} La letra sigue a la música</h4>
+          <p class="small sp-dim">Avanza compás por compás con la grabación. Si se adelanta o se atrasa, <strong>toca la línea que se está cantando</strong> mientras suena y queda ajustada. Con la música en pausa, tocar una línea te lleva a esa parte.${fs.shared ? ' Estás usando los ajustes que compartió el líder.' : ''}</p>
+          <div class="sp-row sp-toggles">
+            <span class="fl-marks">${fs.marks.length ? U.plural(fs.marks.length, 'ajuste', 'ajustes') : 'Sin ajustes'}</span>
+            ${fs.marks.length ? '<button class="sp-chip" data-fl="clear-marks">Borrar ajustes</button>' : ''}
+            ${leader && fs.marks.length ? `<button class="sp-chip" data-fl="share">${I('users', 13)} Compartir con el equipo</button>` : ''}
+          </div>
+          <button class="sp-chip ${P.prefs.follow ? 'is-on' : ''}" data-pref="follow">${I('eye', 13)} Mover la pantalla con la letra</button>
+        </div>
+
+        <div class="fl-sec">
+          <h4>${I('clock', 14)} Velocidad</h4>
+          <div class="stage-seg">${[0.5, 0.75, 0.9, 1].map((r) => `<button class="${fs.rate === r ? 'is-on' : ''}" data-rate="${r}">${Math.round(r * 100)}%</button>`).join('')}</div>
+          <p class="xsmall sp-dim">Más lento sin cambiar el tono. El click y la letra siguen a la música.</p>
+        </div>
+
+        <div class="fl-sec">
+          <h4>${I('loop', 14)} Repetir una parte</h4>
+          <div class="sp-row sp-toggles">
+            <button class="sp-chip ${fs.a != null ? 'is-on' : ''}" data-fl="a">A ${fs.a != null ? fmtT(fs.a) : ''}</button>
+            <button class="sp-chip ${fs.b != null ? 'is-on' : ''}" data-fl="b">B ${fs.b != null ? fmtT(fs.b) : ''}</button>
+            <button class="sp-chip ${fs.loop ? 'is-on' : ''}" data-fl="loop" ${fs.a != null && fs.b != null ? '' : 'disabled'}>${I('loop', 13)} Repetir</button>
+            ${fs.a != null || fs.b != null ? '<button class="sp-chip" data-fl="clear-loop">Quitar</button>' : ''}
+          </div>
+          <p class="xsmall sp-dim">Mientras suena, toca A donde empieza la parte y B donde termina.</p>
+        </div>
+
+        <div class="fl-sec">
+          <h4>${I('volume', 14)} Volumen</h4>
+          <div class="sp-row"><span>${I('headphones', 14)} Música</span><input class="sp-range grow" type="range" min="0" max="100" value="${Math.round(F.prefs.vol * 100)}" data-fl-vol aria-label="Volumen de la música"></div>
+          <div class="sp-row"><span>${I('metronome', 14)} Click</span><input class="sp-range grow" type="range" min="0" max="100" value="${clickVol}" data-fl-click aria-label="Volumen del click"></div>
+          <div class="sp-row"><span>Sincronía</span><button class="sp-chip" data-fl="off-">−10 ms</button><span class="mono">${F.prefs.offsetMs} ms</span><button class="sp-chip" data-fl="off+">+10 ms</button></div>
+          <p class="xsmall sp-dim">Si el click suena antes o después del bombo, ajústalo aquí.</p>
+        </div>`;
+    }
+    const links = M.songLinks(s.id).filter((l) => { const i = App.media.parse(l.url); return i && i.kind === 'audio'; });
+    return `
+      <div class="fl-hero">
+        <span class="fl-hero-icon">${I('wave', 24)}</span>
+        <strong>Ensaya con la música</strong>
+        <p class="small sp-dim">Elige el audio de la alabanza: la app detecta el tempo, el click va con la banda y la letra sigue la canción.</p>
+      </div>
+      ${mine && fs.status === 'loading' ? `<div class="fl-progress"><div class="row-between xsmall"><span>Analizando el ritmo…</span><span class="mono" id="fl-pct">${Math.round(fs.progress * 100)}%</span></div><div class="fl-bar"><span id="fl-bar" style="width:${Math.round(fs.progress * 100)}%"></span></div></div>` : ''}
+      ${mine && fs.status === 'error' ? `<p class="small sp-warn">${esc(fs.error)}</p>` : ''}
+      <label class="fl-pick">${I('music', 16)} Elegir audio (MP3)<input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-fl-file hidden></label>
+      ${links.length ? `<div class="stack-sm"><span class="xsmall sp-dim">Audios compartidos de esta canción</span>${links.map((l) => `<button class="sp-chip" data-fl-url="${esc(l.url)}">${I('link', 13)} ${esc(l.title || App.media.fallbackTitle(App.media.parse(l.url)))}</button>`).join('')}</div>` : ''}
+      <div class="fl-or"><span>o</span></div>
+      <button class="fl-pick fl-pick--ghost" data-fl="mic">${I('mic', 16)} Detectar con el micrófono</button>
+      <p class="xsmall sp-dim">Para YouTube, Spotify o la banda en vivo: pon la música en un parlante y la app escucha 10 segundos.</p>
+      ${micHTML()}
+      <p class="sp-note">YouTube y Spotify no dejan que otras apps lean su audio; por eso se usa el archivo o el micrófono. El audio se guarda solo en este celular y no ocupa la base de datos.</p>`;
+  }
+
+  function panelBody(s) {
+    if (st.panelTab === 'inst') return instrumentsHTML();
+    if (st.panelTab === 'musica') return followHTML(s);
+    return mixHTML(s);
+  }
+
   function panelHTML(s) {
     return `
       <div class="sp-tabs">
+        <button class="${st.panelTab === 'musica' ? 'is-on' : ''}" data-ptab="musica">${I('headphones', 14)} Música</button>
         <button class="${st.panelTab === 'mezcla' ? 'is-on' : ''}" data-ptab="mezcla">${I('sliders', 14)} Mezcla</button>
         <button class="${st.panelTab === 'inst' ? 'is-on' : ''}" data-ptab="inst">${I('eye', 14)} Instrumentos</button>
         <button class="sp-close" data-act="panel" aria-label="Cerrar pistas">${I('x', 15)}</button>
       </div>
-      <div class="sp-body" id="sp-body">${st.panelTab === 'inst' ? instrumentsHTML() : mixHTML(s)}</div>`;
+      <div class="sp-body" id="sp-body">${panelBody(s)}</div>`;
+  }
+
+  function followTransport(s) {
+    const fs = F.state, m = P.meter;
+    return `
+      <button class="tr-play ${fs.playing ? 'is-live' : ''}" data-act="play" aria-label="${fs.playing ? 'Pausar' : 'Reproducir'}">${I(fs.playing ? 'pause' : 'play', 20)}</button>
+      <div class="tr-seek">
+        <span class="mono" id="fl-cur">${fmtT(fs.time)}</span>
+        <input class="sp-range" type="range" id="fl-seek" min="0" max="${fs.duration.toFixed(2)}" step="0.05" value="${fs.time.toFixed(2)}" aria-label="Posición de la música">
+        <span class="mono">${fmtT(fs.duration)}</span>
+      </div>
+      <div class="tr-bpm-val tr-bpm-val--fl"><span class="mono">${Math.round(fs.an.bpm * fs.rate)}</span><span class="tr-lbl">BPM música${fs.rate !== 1 ? ` · ${Math.round(fs.rate * 100)}%` : ''}</span></div>
+      <div class="tr-beats ${m.beats > 4 ? 'is-many' : ''}" id="tr-beats" aria-hidden="true">${Array.from({ length: m.beats }, (_, i) => `<span class="tr-dot ${i === 0 ? 'is-first' : ''}" data-b="${i}">${i + 1}</span>`).join('')}</div>
+      <button class="tr-mix ${st.panel ? 'is-on' : ''}" data-act="panel">${I('headphones', 15)}<span class="tr-mix-txt"><span>Música</span><span class="tr-lbl">${fs.loop ? 'Repitiendo A–B' : 'La letra la sigue'}</span></span></button>`;
   }
 
   function transportHTML(s) {
+    if (F.isActive(s.id)) return followTransport(s);
     const m = P.meter;
     const preset = P.PRESETS.find((p) => p.id === P.activePreset());
     return `
@@ -245,7 +366,7 @@
       </header>
       <div class="stage-main ${st.panel ? 'has-panel' : ''}">
         <div class="stage-body" id="stage-body">
-          <div class="chart stage-chart ${st.chords ? '' : 'chart--lyrics'} ${P.playing || st.panel ? 'is-practice' : ''}" style="--chart-size:${st.size}px">
+          <div class="chart stage-chart ${st.chords ? '' : 'chart--lyrics'} ${P.playing || st.panel || followOn() ? 'is-practice' : ''}" style="--chart-size:${st.size}px">
             ${App.chords.render(s.chart, { n, key: s.key, mode: st.mode, arrangement: s.arrangement })}
           </div>
           ${s.notes ? `<p class="stage-notes">${esc(s.notes)}</p>` : ''}
@@ -273,7 +394,7 @@
     const b = el && el.querySelector('#sp-body');
     if (!b || !cur) return;
     const top = b.scrollTop;
-    b.innerHTML = st.panelTab === 'inst' ? instrumentsHTML() : mixHTML(cur.song);
+    b.innerHTML = panelBody(cur.song);
     b.scrollTop = top;
   }
 
@@ -333,7 +454,7 @@
         break;
       }
       case 'chord': {
-        highlight(e.ev.ci);
+        highlight(e.ev ? e.ev.ci : -1);
         const ch = el.querySelector('#tr-chord');
         if (ch) ch.textContent = chordLabel(e.ev);
         const sec = el.querySelector('#tr-sec');
@@ -364,6 +485,38 @@
     }
   }
 
+  function onFollow(e) {
+    if (!el) return;
+    const q = (id) => el.querySelector(id);
+    switch (e.type) {
+      case 'beat': case 'chord': onEngine(e); break;
+      case 'time': {
+        const seek = q('#fl-seek');
+        if (seek && !seek.matches(':active')) seek.value = F.state.time;
+        const cur = q('#fl-cur');
+        if (cur) cur.textContent = fmtT(F.state.time);
+        break;
+      }
+      case 'state':
+        refreshTransport();
+        if (!F.state.playing) el.querySelectorAll('.tr-dot.is-on').forEach((d) => d.classList.remove('is-on'));
+        break;
+      case 'progress': {
+        const pct = Math.round(F.state.progress * 100);
+        if (q('#fl-pct')) q('#fl-pct').textContent = pct + '%';
+        if (q('#fl-bar')) q('#fl-bar').style.width = pct + '%';
+        break;
+      }
+      case 'mic-level': {
+        if (q('#fl-level')) q('#fl-level').style.width = Math.round(F.mic.level * 100) + '%';
+        if (q('#fl-left')) q('#fl-left').textContent = Math.ceil(F.mic.left);
+        break;
+      }
+      case 'marks': refreshPanel(); break;
+      case 'follow': case 'mic': keepScroll(draw); break;
+    }
+  }
+
   // ---------------------------------------------------------------------
   // Auto-scroll manual
   // ---------------------------------------------------------------------
@@ -383,15 +536,20 @@
 
   function changeSong(delta) {
     P.stop();
+    F.pause();
+    F.stopMic();
     setScrolling(false);
     st.index += delta;
     P.current.ci = -1; P.current.ev = null;
     draw();
     const b = el.querySelector('#stage-body');
     if (b) b.scrollTop = 0;
+    const cur = curItem();
+    if (cur) F.restore(cur.song);
   }
 
   function togglePlay(fromCi) {
+    if (followOn() && fromCi == null) { F.toggle(); return; }
     try { P.toggle(fromCi); } catch (err) { App.ui.toast(err.message || 'No se pudo iniciar el audio.', { kind: 'warn' }); }
   }
 
@@ -417,8 +575,23 @@
     const cur = curItem();
     const mode = e.target.closest('[data-mode]');
     if (mode) { st.mode = mode.dataset.mode; keepScroll(draw); return; }
-    const cc = e.target.closest('.cc[data-ci]');
-    if (cc && (P.playing || st.panel)) { P.stop(); togglePlay(Number(cc.dataset.ci)); return; }
+    const cc = e.target.closest('.cc[data-ci]') || (followOn() && e.target.closest('.cl') && e.target.closest('.cl').querySelector('.cc[data-ci]'));
+    if (cc) {
+      const ci = Number(cc.dataset.ci);
+      if (followOn()) {
+        if (F.state.playing) { F.markAt(ci); highlight(ci, false); App.ui.toast('Letra ajustada aquí ✓'); }
+        else F.playFrom(ci);
+        return;
+      }
+      if (F.mic.status === 'ready' && P.playing) { F.startOnGrid(ci); return; }
+      if (P.playing || st.panel) { P.stop(); togglePlay(ci); return; }
+    }
+    const fl = e.target.closest('[data-fl]');
+    if (fl && !fl.disabled) { followAction(fl.dataset.fl, cur); return; }
+    const flUrl = e.target.closest('[data-fl-url]');
+    if (flUrl) { F.loadUrl(flUrl.dataset.flUrl, { song: cur.song }).catch((err) => App.ui.toast(err.message, { kind: 'warn' })); st.panelTab = 'musica'; return; }
+    const rate = e.target.closest('[data-rate]');
+    if (rate) { F.setRate(Number(rate.dataset.rate)); return; }
     const ptab = e.target.closest('[data-ptab]');
     if (ptab) { st.panelTab = ptab.dataset.ptab; keepScroll(draw); return; }
     const pre = e.target.closest('[data-preset]');
@@ -462,10 +635,42 @@
     keepScroll(draw);
   }
 
+  function followAction(act, cur) {
+    const s = cur.song;
+    switch (act) {
+      case 'mic': F.listen(s); break;
+      case 'mic-stop': F.stopMic(); P.stop(); break;
+      case 'nudge-': P.nudge(-0.02); break;
+      case 'nudge+': P.nudge(0.02); break;
+      case 'remove': F.remove(); break;
+      case 'half': case 'double': case 'shift': F.fix(act); break;
+      case 'save-bpm':
+        App.actions.saveSong(Object.assign(U.clone(s), { bpm: Math.round(F.state.an.bpm) }));
+        App.ui.toast(`"${s.title}" quedó en ${Math.round(F.state.an.bpm)} BPM.`);
+        refreshPanel();
+        break;
+      case 'clear-marks': F.clearMarks(); break;
+      case 'share': F.share(s); App.ui.toast('Listo: el equipo verá la letra sincronizada con esta grabación.'); break;
+      case 'a': F.setLoopPoint('a'); break;
+      case 'b': F.setLoopPoint('b'); break;
+      case 'loop': F.toggleLoop(); break;
+      case 'clear-loop': F.clearLoop(); break;
+      case 'off-': F.setOffset(F.prefs.offsetMs - 10); break;
+      case 'off+': F.setOffset(F.prefs.offsetMs + 10); break;
+    }
+  }
+
   const refreshPanelSoon = U.debounce(() => { if (st && st.panel && st.panelTab === 'mezcla') refreshPanel(); }, 400);
 
   function onInput(e) {
     const t = e.target;
+    if (t.id === 'fl-seek') { F.seek(Number(t.value)); return; }
+    if ('flVol' in t.dataset) { F.setVol(Number(t.value) / 100); return; }
+    if ('flClick' in t.dataset) {
+      if (P.mix.click.mute && Number(t.value) > 0) P.toggleMute('click');
+      P.setVol('click', Number(t.value) / 100);
+      return;
+    }
     if (t.dataset.vol) {
       P.setVol(t.dataset.vol, Number(t.value) / 100);
       const row = t.closest('.sp-track');
@@ -480,6 +685,7 @@
     if (el) close();
     st = Object.assign({ index: 0, mode: App.store.state.prefs.notation, chords: true, size: 26, scrolling: false, speed: 1, acc: 0, panel: false, panelTab: 'mezcla', bpm: {}, feel: {}, loaded: null }, opts);
     if (opts && opts.practice) st.panel = true;
+    if (opts && opts.music) { st.panel = true; st.panelTab = 'musica'; }
     el = document.createElement('div');
     el.className = 'stage';
     el.setAttribute('role', 'dialog');
@@ -492,6 +698,16 @@
     el.addEventListener('input', onInput);
     document.addEventListener('keydown', onKey);
     unsub = P.on(onEngine);
+    unsubF = F.on(onFollow);
+    el.addEventListener('change', (e) => {
+      const f = e.target.closest('[data-fl-file]');
+      if (!f || !f.files || !f.files[0]) return;
+      const cur = curItem();
+      st.panelTab = 'musica';
+      F.load(f.files[0], { song: cur.song, name: f.files[0].name.replace(/\.[a-z0-9]+$/i, '') });
+    });
+    const first = curItem();
+    if (first) F.restore(first.song);
     try { if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); } catch (e) { /* sin pantalla completa */ }
     try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then((w) => { wakeLock = w; }).catch(() => {}); } catch (e) { /* sin wake lock */ }
   }
@@ -499,6 +715,10 @@
   function close() {
     if (!el) return;
     P.stop();
+    F.stopMic();
+    F.unload(false);
+    if (unsubF) unsubF();
+    unsubF = null;
     setScrolling(false);
     if (unsub) unsub();
     unsub = null;

@@ -241,7 +241,7 @@
         if (!b) return;
         switch (b.dataset.act) {
           case 'add-link': App.forms.songLink(s.id); break;
-          case 'practice': stopScroll(); App.stage.openSong(s.id, target, { practice: true }); break;
+          case 'practice': stopScroll(); App.stage.openSong(s.id, target, { practice: true, music: true }); break;
           case 'up': setKey(C.transposeKey(target, 1)); break;
           case 'down': setKey(C.transposeKey(target, -1)); break;
           case 'reset': setKey(s.key); break;

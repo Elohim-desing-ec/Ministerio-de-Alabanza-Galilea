@@ -1,0 +1,74 @@
+/* SELAH · Cronograma del mes (vista tipo póster) */
+
+.cr-tools { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.cr {
+  border-radius: 20px; overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom)), var(--glass-fill);
+  box-shadow: var(--glass-shadow);
+  position: relative;
+}
+.cr-head {
+  display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(100deg, #3B2FD6, #5B5BF7 55%, #22B8C4);
+  color: #fff;
+}
+.cr-year { font-size: 30px; font-weight: 800; opacity: .9; }
+.cr-month { font-size: 34px; font-weight: 800; text-align: center; letter-spacing: -.02em; color: #fff; }
+.cr-church { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .85; text-align: right; }
+.cr-dow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: var(--surface-3); }
+.cr-dow span { padding: 8px 6px; text-align: center; font-size: 11.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.cr-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cr-cell { min-width: 0; min-height: 110px; display: flex; flex-direction: column; gap: 8px; padding: 0 6px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cr-cell:nth-child(7n) { border-right: 0; }
+.cr-cell.is-empty { background: rgb(0 0 0 / .12); }
+:root[data-theme="light"] .cr-cell.is-empty { background: var(--surface-2); }
+.cr-cell.is-out { opacity: .4; }
+.cr-day { margin: 0 -6px; padding: 3px 6px; text-align: center; font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink-2); background: rgb(251 191 36 / .14); border-bottom: 1px solid rgb(251 191 36 / .25); }
+.cr-cell.is-today .cr-day { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cr-dname { display: none; }
+.cr-ev { display: flex; flex-direction: column; align-items: center; gap: 1px; text-align: center; padding-top: 4px; }
+.cr-title { font-family: var(--font-display); font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; color: var(--tc); line-height: 1.15; text-decoration: none; }
+.cr-title:hover { text-decoration: underline; }
+.cr-time { font-size: 10.5px; color: var(--ink-3); margin-bottom: 3px; }
+.cr-role { display: inline-flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap; max-width: 100%; padding: 1px 6px; border-radius: 7px; font-size: 11.5px; font-weight: 700; line-height: 1.35; text-transform: uppercase; color: var(--ink); }
+button.cr-role[data-cr-slot] { cursor: pointer; }
+button.cr-role[data-cr-slot]:hover { background: var(--nav-active); }
+.cr-lbl { color: var(--rc); text-decoration: underline; text-underline-offset: 2px; filter: saturate(1.2) brightness(1.35); }
+:root[data-theme="light"] .cr-lbl { filter: none; }
+.cr-role.is-open .cr-name { color: var(--ink-3); }
+.cr-role.is-me { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.cr-st { display: inline-grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; }
+.cr-st--ok { background: var(--ok-soft); color: var(--ok); }
+.cr-st--bad { background: var(--bad-soft); color: var(--bad); }
+.cr-empty { padding: 20px; }
+.cr-poster { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+
+/* Plantilla del mes */
+.cg-list { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.cg-row { display: grid; grid-template-columns: 110px 170px minmax(0, 1fr) 100px auto 32px; gap: 6px; align-items: center; padding: 6px; border-radius: 12px; }
+.cg-row:hover { background: var(--nav-active); }
+.input--sm { height: 32px; font-size: var(--fs-sm); padding: 0 10px; }
+.cg-weeks { display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px; background: var(--nav-active); }
+.cg-weeks button { width: 28px; height: 26px; border-radius: 7px; font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.cg-weeks button.is-on { background: var(--accent); color: #fff; }
+
+/* Celular: lista por días (el póster de 7 columnas no cabe) */
+@media (max-width: 760px) {
+  .cr-head { grid-template-columns: auto 1fr; }
+  .cr-church { display: none; }
+  .cr-month { text-align: left; font-size: 28px; }
+  .cr-year { font-size: 22px; }
+  .cr-dow { display: none; }
+  .cr-grid { display: flex; flex-direction: column; }
+  .cr-cell { min-height: 0; border-right: 0; padding: 0 12px 12px; }
+  .cr-cell.is-empty, .cr-cell.is-out { display: none; }
+  .cr-day { margin: 0 -12px; padding: 6px 12px; text-align: left; font-family: var(--font-body); font-size: 13px; }
+  .cr-dname { display: inline; }
+  .cr-ev { align-items: flex-start; text-align: left; padding: 8px 10px; border-radius: 12px; background: var(--nav-active); border-left: 3px solid var(--tc); }
+  .cr-title { font-size: 14px; }
+  .cr-role { font-size: 12.5px; padding: 3px 6px; justify-content: flex-start; }
+  .cg-row { grid-template-columns: 1fr 1fr; }
+  .cg-row input[data-f="title"] { grid-column: 1 / -1; }
+}

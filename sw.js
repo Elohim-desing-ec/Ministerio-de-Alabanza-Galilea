@@ -3,7 +3,7 @@
    Estrategia: primero la red (siempre lo más nuevo) y, si no hay conexión,
    lo guardado. Las tipografías y el lector de PDF se guardan al usarse.
    ========================================================================= */
-const CACHE = 'selah-galilea-v6';
+const CACHE = 'selah-galilea-v8';
 const SHELL = [
   "./",
   "assets/icon-180.png",
@@ -25,6 +25,8 @@ const SHELL = [
   "css/views/intro.css",
   "css/views/listen.css",
   "css/views/login.css",
+  "css/views/notify.css",
+  "css/views/schedule.css",
   "css/views/settings.css",
   "css/views/songs.css",
   "css/views/stage.css",
@@ -40,8 +42,10 @@ const SHELL = [
   "js/config.js",
   "js/core/actions.js",
   "js/core/auth.js",
+  "js/core/beat.js",
   "js/core/chords.js",
   "js/core/cloud.js",
+  "js/core/follow.js",
   "js/core/importer.js",
   "js/core/media.js",
   "js/core/model.js",
@@ -55,8 +59,10 @@ const SHELL = [
   "js/ui/icons.js",
   "js/ui/import.js",
   "js/ui/intro.js",
+  "js/ui/listado.js",
   "js/ui/login.js",
   "js/ui/markdown.js",
+  "js/ui/notify.js",
   "js/ui/player.js",
   "js/ui/pwa.js",
   "js/ui/stage.js",
@@ -66,6 +72,7 @@ const SHELL = [
   "js/views/chat.js",
   "js/views/event.js",
   "js/views/home.js",
+  "js/views/schedule.js",
   "js/views/listen.js",
   "js/views/settings.js",
   "js/views/song.js",
@@ -105,4 +112,25 @@ self.addEventListener('fetch', (e) => {
       })
       .catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === 'navigate' ? caches.match('index.html') : undefined)))
   );
+});
+
+// ---- Avisos: tocar una notificación abre la app en el culto ----
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const hash = (e.notification.data && e.notification.data.url) || '#inicio';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const c of list) {
+      if ('focus' in c) { c.navigate ? c.navigate(new URL('./index.html' + hash, self.registration.scope).href).catch(() => {}) : null; return c.focus(); }
+    }
+    return self.clients.openWindow(new URL('./index.html' + hash, self.registration.scope).href);
+  }));
+});
+
+// ---- Avisos enviados por el servidor (cuando la app está cerrada) ----
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'Alabanza Galilea', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Alabanza Galilea', {
+    body: d.body || '', tag: d.tag, icon: 'assets/icon-192.png', badge: 'assets/icon-192.png', data: { url: d.url || '#inicio' }
+  }));
 });

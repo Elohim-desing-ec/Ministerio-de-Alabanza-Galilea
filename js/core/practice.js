@@ -584,7 +584,7 @@
   // API
   // ---------------------------------------------------------------------
   /** Empieza a sonar. fromCi = número del acorde desde donde empezar. */
-  function play(fromCi = null) {
+  function play(fromCi = null, opts = {}) {
     audio();
     if (playing) return;
     if (!plan.length && totalSteps === 0) buildPlan();
@@ -599,8 +599,9 @@
     let start = 0;
     if (fromCi != null) { const ev = plan.find((e) => e.ci === fromCi); if (ev) start = ev.startStep; }
     pi = 0; si = 0;
-    if (prefs.countIn) { step = -spb; startAt = start; } else { step = start; startAt = 0; }
-    nextTime = ctx.currentTime + 0.08;
+    const countIn = opts.countIn != null ? opts.countIn : prefs.countIn;
+    if (countIn) { step = -spb; startAt = start; } else { step = start; startAt = 0; }
+    nextTime = opts.startAt && opts.startAt > ctx.currentTime ? opts.startAt : ctx.currentTime + 0.08;
     uiQueue = [];
     startTicker();
     raf = requestAnimationFrame(uiLoop);
@@ -684,6 +685,17 @@
     return p ? p.id : null;
   }
 
+  /** Click para otras fuentes de tiempo (la grabación): pasa por la pista Click. */
+  let ext = null;
+  function clickAt(t, accent) {
+    audio();
+    if (!ext) { ext = ctx.createGain(); ext.connect(target.click); }
+    click(t, accent, ext);
+  }
+
+  /** Corre el metrónomo unos milisegundos (para cuadrarlo con la música). */
+  function nudge(sec) { if (playing) nextTime += sec; }
+
   App.practice = {
     TRACKS, PRESETS, meterOf,
     get playing() { return playing; },
@@ -693,7 +705,7 @@
     get prefs() { return prefs; },
     get mix() { return mix; },
     current,
-    load, play, stop,
+    load, play, stop, clickAt, nudge, audio,
     toggle(fromCi) { if (playing) stop(); else play(fromCi); return playing; },
     setBpm, tap, setPref, setFeel, setVol, toggleMute, toggleSolo, preset, activePreset,
     gainOf, drumHits, guitarShape, pianoVoicing, tones,

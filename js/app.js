@@ -81,6 +81,8 @@
       `<button class="tab" type="button" data-route="mas" id="tab-more">${I('more', 20)}<span>Más</span></button>`;
 
     U.$('#brand-sub').textContent = s.churchName;
+    const avisos = App.notify ? App.notify.count() : 0;
+    U.$$('[data-bell-count]').forEach((b) => { b.hidden = !avisos; b.textContent = avisos > 9 ? '9+' : avisos; });
 
     const chip = `${ui.avatar(me, 'sm')}<span class="uc-text"><span class="uc-name truncate">${esc(me.name)}</span><span class="uc-role">${M.isLeader(me) ? 'Líder de alabanza' : me.roles.map(M.posLabel).slice(0, 2).join(' · ')}</span></span>${I('chevron-up', 16)}`;
     U.$('#user-chip').innerHTML = chip;
@@ -169,6 +171,10 @@
     U.$('#user-chip').addEventListener('click', userMenu);
     U.$('#top-user').addEventListener('click', userMenu);
     U.$('#tabbar').addEventListener('click', (e) => { if (e.target.closest('#tab-more')) moreMenu(); });
+    U.$$('[data-bell]').forEach((b) => b.addEventListener('click', () => App.notify.panel()));
+    App.store.on(() => App.notify.checkSoon());
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) App.notify.checkSoon(); });
+    setTimeout(() => App.notify.check(), 1200);
   }
 
   function syncIndicator() {

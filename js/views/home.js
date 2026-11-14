@@ -187,6 +187,7 @@
               ${upcomingList()}
             </section>
             <div class="stack">
+              ${App.listado.card(me)}
               ${leader ? App.streak.pendingPanel() : ''}
               ${leader ? attentionPanel() : ''}
               ${App.streak.board(5)}

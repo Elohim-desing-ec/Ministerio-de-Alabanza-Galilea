@@ -297,3 +297,54 @@
   .sp-track { grid-template-columns: 28px 64px 28px 28px minmax(0, 1fr); }
   .sp-chord { font-size: 34px; }
 }
+
+/* ---- Ensayar con la música ---- */
+.tr-seek { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; font-size: 12px; color: var(--stage-muted); }
+.tr-seek .sp-range { flex: 1; min-width: 60px; }
+.tr-bpm-val--fl { padding: 0 6px; }
+.fl-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 14px 10px 4px; }
+.fl-hero strong { font-size: 17px; }
+.fl-hero-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: radial-gradient(circle at 32% 20%, rgb(255 255 255 / .35), transparent 55%), linear-gradient(160deg, #7A72FF, #3B2FD6 60%, #1A1660); box-shadow: 0 12px 30px -12px var(--st-glow); }
+.fl-pick {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; border-radius: 14px; cursor: pointer;
+  font-weight: 700; font-size: 14px; color: #fff;
+  background: linear-gradient(180deg, #7A72FF, #4F46E5);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 10px 26px -12px var(--st-glow);
+}
+.fl-pick--ghost { background: transparent; border: 1px solid var(--stage-line); box-shadow: none; color: var(--stage-ink); width: 100%; }
+.fl-pick--ghost:hover { background: var(--stage-line); }
+.fl-or { display: flex; align-items: center; gap: 10px; color: var(--stage-muted); font-size: 12px; }
+.fl-or::before, .fl-or::after { content: ""; flex: 1; height: 1px; background: var(--stage-line); }
+.fl-progress { display: flex; flex-direction: column; gap: 6px; color: var(--stage-muted); }
+.fl-bar { height: 6px; border-radius: 6px; background: var(--stage-line); overflow: hidden; }
+.fl-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--stage-accent), var(--brand-cyan)); transition: width 200ms; }
+.fl-mic { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--stage-bg); border: 1px solid var(--stage-line); font-size: 13px; }
+.fl-mic.is-on { border-color: #F87171; }
+.fl-mic.is-ok { border-color: color-mix(in srgb, #4ADE80 50%, transparent); color: #4ADE80; }
+.fl-mic.is-ok strong { color: var(--stage-ink); }
+.fl-mic-dot { width: 12px; height: 12px; border-radius: 50%; background: #F87171; box-shadow: 0 0 0 0 rgb(248 113 113 / .6); animation: mic-pulse 1.2s infinite; flex-shrink: 0; }
+@keyframes mic-pulse { 0% { box-shadow: 0 0 0 0 rgb(248 113 113 / .6); } 100% { box-shadow: 0 0 0 12px transparent; } }
+.fl-meter { height: 6px; border-radius: 6px; background: var(--stage-line); overflow: hidden; }
+.fl-meter span { display: block; height: 100%; background: linear-gradient(90deg, #4ADE80, #FBBF24, #F87171); transition: width 80ms; }
+.fl-card { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 16px; background: radial-gradient(80% 120% at 0% 0%, rgb(91 91 247 / .25), transparent 70%), var(--stage-bg); border: 1px solid var(--stage-line); }
+.fl-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.fl-icon { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: rgb(94 231 240 / .12); color: var(--brand-cyan); }
+.fl-bpm { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fl-bpm-num { font-size: 40px; font-weight: 800; line-height: 1; color: #fff; }
+.fl-conf { font-size: 11.5px; font-weight: 800; padding: 4px 10px; border-radius: var(--r-pill); }
+.fl-conf--alta { background: rgb(74 222 128 / .15); color: #4ADE80; }
+.fl-conf--media { background: rgb(251 191 36 / .15); color: #FBBF24; }
+.fl-conf--baja { background: rgb(248 113 113 / .15); color: #F87171; }
+.fl-sec { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--stage-bg); border: 1px solid var(--stage-line); }
+.fl-sec h4 { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--stage-muted); }
+.fl-sec .sp-chip[data-pref] { align-self: flex-start; }
+.fl-marks { font-size: 12.5px; font-weight: 700; color: var(--stage-ink); }
+.sp-chip:disabled { opacity: .4; }
+.sp-tabs button { padding: 0 10px; }
+
+@media (max-width: 640px) {
+  .tr-seek { order: 5; flex: 1 1 100%; }
+  .tr-bpm-val--fl { flex: 1; align-items: flex-start; }
+  .sp-tabs button { padding: 0 8px; font-size: 12.5px; }
+}

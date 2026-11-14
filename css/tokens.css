@@ -44,6 +44,11 @@
   --t-ensayo: #334155;
   --t-jovenes: #0891B2;
   --t-especial: #9333EA;
+  --t-dominical: #DC2626;
+  --t-ensenanza: #2563EB;
+  --t-damas: #DB2777;
+  --t-caballeros: #0F766E;
+  --t-oracion: #7C3AED;
 
   --av-s: 30%;
   --av-l: 92%;
@@ -144,6 +149,11 @@
     --t-ensayo: #E2E6EE;
     --t-jovenes: #5EE7F0;
     --t-especial: #C59BFF;
+    --t-dominical: #F87171;
+    --t-ensenanza: #60A5FA;
+    --t-damas: #F472B6;
+    --t-caballeros: #2DD4BF;
+    --t-oracion: #A78BFA;
     --av-s: 28%;
     --av-l: 20%;
     --av-tl: 86%;
@@ -200,6 +210,11 @@
   --t-ensayo: #E2E6EE;
   --t-jovenes: #5EE7F0;
   --t-especial: #C59BFF;
+  --t-dominical: #F87171;
+  --t-ensenanza: #60A5FA;
+  --t-damas: #F472B6;
+  --t-caballeros: #2DD4BF;
+  --t-oracion: #A78BFA;
   --av-s: 28%;
   --av-l: 20%;
   --av-tl: 86%;

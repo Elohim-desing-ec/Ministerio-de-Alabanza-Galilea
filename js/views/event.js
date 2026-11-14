@@ -144,17 +144,38 @@
         <p class="small muted">${U.plural(ev.setlist.length, 'canción', 'canciones')} · ${U.fmtMinutes(total)} aprox.</p>
         <div class="row">
           ${ev.setlist.length ? `<button class="btn btn--ghost btn--sm" data-act="stage">${I('stage', 14)} Modo escenario</button>` : ''}
-          ${ev.setlist.length ? `<button class="btn btn--ghost btn--sm" data-act="practice">${I('metronome', 14)} Ensayar con pistas</button>` : ''}
-          <button class="btn btn--soft btn--sm" data-act="ai-setlist">${I('sparkle', 14)} Sugerir con IA</button>
+          ${ev.setlist.length ? `<button class="btn btn--ghost btn--sm" data-act="practice">${I('metronome', 14)} Ensayar con la música</button>` : ''}
+          ${leader ? `<button class="btn btn--soft btn--sm" data-act="ai-setlist">${I('sparkle', 14)} Sugerir con IA</button>` : ''}
+          ${App.listado.canCreate(ev) ? `<button class="btn ${leader ? 'btn--ghost' : 'btn--primary'} btn--sm" data-listado="${esc(ev.id)}">${I('mic', 14)} ${ev.list ? 'Editar listado' : 'Crear listado'}</button>` : ''}
           ${leader ? `<button class="btn btn--primary btn--sm" data-act="add-song">${I('plus', 14)} Agregar canción</button>` : ''}
         </div>
-      </div>`;
+      </div>
+      ${ev.list ? (() => {
+        const by = M.member(ev.list.by);
+        return `<div class="li-banner">${ui.avatar(by, 'sm')}<div class="grow stack-sm"><span class="small"><strong>${esc(by ? by.name : 'Alguien')}</strong> envió el listado · ${U.timeAgo(ev.list.at)}</span>${ev.list.note ? `<span class="small muted">📝 ${esc(ev.list.note)}</span>` : ''}</div></div>`;
+      })() : ''}`;
     if (!ev.setlist.length) {
-      return head + ui.empty({ icon: 'music', title: 'Setlist vacío', text: 'Agrega canciones del repertorio o pide una sugerencia al asistente según el tema del servicio.' });
+      return head + ui.empty({ icon: 'music', title: 'Todavía no hay listado', text: App.listado.canCreate(ev) ? 'Arma el listado con las alabanzas, el tono y un link de referencia, y envíalo al equipo.' : 'Cuando los cantantes envíen el listado, aparecerá aquí con los links para ensayar.' });
     }
     return head + `<ol class="setlist card">${ev.setlist.map((it, i) => {
       const s = M.song(it.songId);
-      if (!s) return '';
+      if (!s) {
+        return `
+        <li class="sl-row sl-row--free" data-idx="${i}">
+          <span class="sl-num mono">${i + 1}</span>
+          <div class="sl-main">
+            <span class="sl-title-row"><span class="sl-title">${esc(it.title || 'Canción')}</span>${it.link ? `<button class="sl-listen" data-listen-url="${esc(it.link)}" data-listen-title="${esc(it.title || '')}" aria-label="Escuchar" title="Escuchar">${I('headphones', 13)}</button>` : ''}</span>
+            <span class="xsmall faint">Canción nueva · todavía no está en el repertorio</span>
+          </div>
+          <div class="sl-key">${it.key ? ui.keyBadge(it.key) : ''}</div>
+          <div class="sl-lead">${it.leaderId && M.member(it.leaderId) ? ui.person(M.member(it.leaderId), 'xs') : ''}</div>
+          ${leader ? `<div class="sl-actions">
+            <button class="btn btn--plain btn--icon btn--sm" data-act="up" data-idx="${i}" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>${I('arrow-up', 15)}</button>
+            <button class="btn btn--plain btn--icon btn--sm" data-act="down" data-idx="${i}" aria-label="Bajar" ${i === ev.setlist.length - 1 ? 'disabled' : ''}>${I('arrow-down', 15)}</button>
+            <button class="btn btn--plain btn--icon btn--sm" data-act="remove-song" data-idx="${i}" aria-label="Quitar">${I('x', 15)}</button>
+          </div>` : ''}
+        </li>`;
+      }
       const keys = App.chords.keysFor(s.key);
       const lead = M.member(it.leaderId);
       const diff = App.chords.semitones(s.key, it.key);
@@ -231,6 +252,9 @@
         </section>`;
     }).join('');
 
+    ev.setlist.forEach((it) => {
+      if (!M.song(it.songId) && it.link && !others.some((l) => l.url === it.link)) others.push({ url: it.link, title: it.title || '', source: 'list' });
+    });
     const otherIdx = others.length ? add(others) : -1;
     const otherBlock = others.length ? `
       <section class="listen-song">
@@ -410,6 +434,8 @@
         if (qall) { ui.playLinks(queues[Number(qall.dataset.qall)] || []); return; }
         const pl = e.target.closest('[data-play]');
         if (pl) { const [qi, k] = pl.dataset.play.split(':').map(Number); ui.playLinks(queues[qi] || [], k || 0); return; }
+        const lu = e.target.closest('[data-listen-url]');
+        if (lu) { App.player.play([{ url: lu.dataset.listenUrl, title: lu.dataset.listenTitle, sub: ev.title }]); return; }
         const ls = e.target.closest('[data-listen-song]');
         if (ls) { ui.playLinks(songLinksFor(ev, ls.dataset.listenSong)); return; }
         const rml = e.target.closest('[data-remove-link]');
@@ -426,7 +452,7 @@
           case 'add-song': App.forms.songPicker(ev.id); break;
           case 'ai-setlist': App.ai.askAbout(`Sugiere un setlist para "${ev.title}" del ${U.fmtDate(ev.date, 'long')}. ${ev.notes ? 'Notas: ' + ev.notes : ''}`.trim(), ev.id); break;
           case 'stage': App.stage.openEvent(ev.id); break;
-          case 'practice': App.stage.openEvent(ev.id, 0, { practice: true }); break;
+          case 'practice': App.stage.openEvent(ev.id, 0, { practice: true, music: true }); break;
           case 'share-link': App.forms.shareLink(ev.id, btn.dataset.song || null); break;
           case 'up': A.moveSong(ev.id, idx, idx - 1); break;
           case 'down': A.moveSong(ev.id, idx, idx + 1); break;

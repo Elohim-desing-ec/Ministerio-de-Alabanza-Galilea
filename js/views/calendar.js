@@ -140,6 +140,7 @@
             <div class="seg" role="group" aria-label="Vista">
               <button class="${vs.mode === 'mes' ? 'is-on' : ''}" data-mode="mes">${I('grid', 14)} Mes</button>
               <button class="${vs.mode === 'lista' ? 'is-on' : ''}" data-mode="lista">${I('list', 14)} Lista</button>
+              <button class="${vs.mode === 'cronograma' ? 'is-on' : ''}" data-mode="cronograma">${I('columns', 14)} Cronograma</button>
             </div>
           </div>
 
@@ -151,7 +152,7 @@
               ${dayPanel()}
             </div>
             <div class="cal-legend">${Object.keys(App.config.eventTypes).map((t) => ui.typeTag(t)).join('')}<span class="xsmall faint row">${I('block', 12)} No disponible</span><span class="xsmall faint row">${I('mic', 12)} Sirves</span></div>`
-            : listView()}
+            : vs.mode === 'cronograma' ? App.schedule.view(vs.month) : listView()}
         </div>`;
 
       root.addEventListener('click', (e) => {
@@ -205,6 +206,7 @@
       root.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.target.classList.contains('cal-cell')) e.target.click();
       });
+      if (vs.mode === 'cronograma') App.schedule.bind(root, vs.month);
     }
   };
 })();

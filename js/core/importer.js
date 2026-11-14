@@ -30,13 +30,15 @@
   const isChordish = (t) => C.isChordLine(t) || /\[[A-G][^\]]*\]/.test(t);
   /** Texto con espacios simples, para reconocer marcas aunque el PDF duplique espacios. */
   const flat = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+  /** Quita la fecha y hora que el navegador pone arriba al imprimir ("14/11/26, 10:41 a.m."). */
+  const unstamp = (t) => String(t || '').replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[ap]\.?\s?m\.?)?\s*/i, '');
 
   /** Busca título, artista, tono y capo en el encabezado. */
   function readMeta(lines, fileName) {
     let title = null, artist = null, key = null, capo = null, m;
     // 1) Ruta de LaCuerda: "Acordes de Guitarra » M » Artista » Canción (Tab)" (la más fiable)
     for (const l of lines) {
-      const t = flat(l.text);
+      const t = flat(unstamp(l.text));
       if (!t.includes('»')) continue;
       const parts = t.split('»').map((x) => x.trim()).filter(Boolean);
       if (parts.length >= 3) {
@@ -46,9 +48,14 @@
       }
     }
     for (const l of lines) {
-      const t = flat(l.text);
+      const t = flat(unstamp(l.text));
       if (!t) continue;
-      if (!title && (m = /^(.+?):\s*acordes\b/i.exec(t))) title = m[1];
+      if (!title && (m = /^(.+?):\s*acordes\b/i.exec(t))) {
+        title = m[1];
+        // "HOSSANA, Marco Barrientos: Acordes" → título y artista
+        const c = title.lastIndexOf(', ');
+        if (!artist && c > 0) { artist = title.slice(c + 2); title = title.slice(0, c); }
+      }
       if (!title && (m = /^acordes de (.+?),\s*(.+?)(:|$)/i.exec(t))) { title = m[1]; artist = artist || m[2]; }
       if (!key && (m = /\b(tono|tonalidad|key)\s*[:=\-]?\s*(do|re|mi|fa|sol|la|si|[A-G])\s*(#|b)?\s*(m(?:enor)?)?\b/i.exec(t))) {
         key = C.readKey(`${m[2]}${m[3] || ''}${m[4] ? 'm' : ''}`);
