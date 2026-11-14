@@ -3,7 +3,7 @@
    Estrategia: primero la red (siempre lo más nuevo) y, si no hay conexión,
    lo guardado. Las tipografías y el lector de PDF se guardan al usarse.
    ========================================================================= */
-const CACHE = 'selah-galilea-v9';
+const CACHE = 'selah-galilea-v10';
 const SHELL = [
   "./",
   "assets/icon-180.png",
@@ -42,6 +42,7 @@ const SHELL = [
   "js/app.js",
   "js/config.js",
   "js/core/actions.js",
+  "js/core/align.js",
   "js/core/auth.js",
   "js/core/beat.js",
   "js/core/chords.js",

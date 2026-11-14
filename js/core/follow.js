@@ -23,7 +23,8 @@
 
   const state = {
     status: 'empty',       // empty · loading · ready · error
-    progress: 0, error: '',
+    progress: 0, error: '', phase: '',
+    auto: null,            // { confidence, shift } si la letra se acomodó sola
     songId: null, name: '', duration: 0,
     an: null,              // { bpm, beats, downbeat, confidence }
     marks: [],             // ajustes de la letra: [{ ci, t }]
@@ -67,7 +68,30 @@
 
   function persistMeta() {
     if (!state.songId || !state.an) return;
-    saveMeta(state.songId, { an: state.an, marks: state.marks, name: state.name, at: Date.now() });
+    saveMeta(state.songId, { an: state.an, marks: state.marks, auto: state.auto, name: state.name, at: Date.now() });
+  }
+
+  function mono(buf) {
+    if (buf.numberOfChannels === 1) return buf.getChannelData(0);
+    const a = buf.getChannelData(0), b = buf.getChannelData(1), out = new Float32Array(a.length);
+    for (let i = 0; i < a.length; i++) out[i] = (a[i] + b[i]) * 0.5;
+    return out;
+  }
+
+  /** Volver a acomodar la letra sola (por ejemplo, después de cambiar la hoja). */
+  async function realign(song) {
+    if (!blob || !state.an) return;
+    state.status = 'loading'; state.progress = 0.5; state.phase = 'Acomodando la letra con la música…';
+    emit({ type: 'follow' });
+    try {
+      const buf = await decode(await blob.arrayBuffer());
+      const r = await App.align.align({ samples: mono(buf), sr: buf.sampleRate, beats: state.an.beats, plan: P.plan, sub: P.meter.sub, onProgress: (p) => { state.progress = 0.5 + p * 0.5; emit({ type: 'progress' }); } });
+      state.marks = r.marks; state.auto = { confidence: r.confidence, shift: r.shift };
+      resolved = null; lastCi = -2;
+      persistMeta();
+    } catch (e) { App.ui.toast(e.message || 'No se pudo acomodar la letra.', { kind: 'warn' }); }
+    state.status = 'ready';
+    emit({ type: 'follow' });
   }
 
   // ---------------------------------------------------------------------
@@ -96,17 +120,31 @@
     try {
       blob = source;
       let an = cached && cached.an;
+      let buf = null;
       if (!an) {
-        const buf = await decode(await blob.arrayBuffer());
+        state.phase = 'Escuchando el ritmo…';
+        buf = await decode(await blob.arrayBuffer());
         an = await BT.analyzeBuffer(buf, {
           hint: song.bpm || 0,
           beatsPerBar: P.meter.beats,
-          onProgress: (p) => { state.progress = p; emit({ type: 'progress' }); }
+          onProgress: (p) => { state.progress = p * 0.5; emit({ type: 'progress' }); }
         });
       }
       state.an = an;
       state.duration = an.duration;
       state.marks = sharedMarks(song, an) || (cached && cached.marks) || [];
+      state.auto = (cached && cached.auto) || null;
+      // Sin sincronización todavía: la app acomoda la letra sola
+      if (!state.marks.length && P.plan.length >= 2) {
+        try {
+          if (!buf) buf = await decode(await blob.arrayBuffer());
+          state.phase = 'Acomodando la letra con la música…';
+          emit({ type: 'progress' });
+          const r = await App.align.align({ samples: mono(buf), sr: buf.sampleRate, beats: an.beats, plan: P.plan, sub: P.meter.sub, onProgress: (p) => { state.progress = 0.5 + p * 0.5; emit({ type: 'progress' }); } });
+          state.marks = r.marks;
+          state.auto = { confidence: r.confidence, shift: r.shift };
+        } catch (e) { state.auto = null; }
+      }
       resolved = null;
       mount();
       state.status = 'ready';
@@ -202,7 +240,7 @@
     const plan = P.plan;
     if (!state.an || !plan.length) return (resolved = []);
     const list = state.marks.map((m) => ({ ci: m.ci, b: nearestBeat(m.t) })).sort((x, y) => x.b - y.b);
-    if (!list.length || list[0].ci !== plan[0].ci) {
+    if (!list.length) {
       const first = list.length ? Math.min(state.an.downbeat, list[0].b) : state.an.downbeat;
       if (!list.length || list[0].b > first) list.unshift({ ci: plan[0].ci, b: first, auto: true });
     }
@@ -220,6 +258,10 @@
 
   function chordAtBeat(i) {
     const list = anchors();
+    if (list.length >= 2) {
+      const beats = state.an.beats;
+      return App.yt.chordAt(list.map((x) => ({ ci: x.ci, t: beats[x.b] })), P.plan, beats[i] + 0.001, state.an.bpm, P.meter.sub);
+    }
     let a = null, next = null;
     for (const x of list) { if (x.b <= i) a = x; else { next = x; break; } }
     if (!a) return null;
@@ -246,6 +288,7 @@
     const plan = P.plan, list = anchors();
     const target = plan.find((e) => e.ci === ci);
     if (!target || !list.length) return null;
+    if (list.length >= 2) return App.yt.timeOf(list.map((x) => ({ ci: x.ci, t: state.an.beats[x.b] })), plan, ci);
     let a = list[0], next = null;
     for (const x of list) { if (x.ci <= ci) a = x; else if (!next) next = x; }
     const stepOf = (c) => (plan.find((e) => e.ci === c) || plan[0]).startStep;
@@ -262,13 +305,7 @@
     const t = Math.max(0, el.currentTime - 0.12 * (el.playbackRate || 1)); // tiempo de reacción
     const b = nearestBeat(t);
     const tb = state.an.beats[b];
-    state.marks = state.marks.filter((m) => {
-      const mb = nearestBeat(m.t);
-      if (Math.abs(mb - b) <= 1) return false;
-      if (mb > b && m.ci <= ci) return false;
-      if (mb < b && m.ci >= ci) return false;
-      return true;
-    }).concat({ ci, t: tb }).sort((x, y) => x.t - y.t);
+    state.marks = state.marks.filter((m) => Math.abs(nearestBeat(m.t) - b) > 2).concat({ ci, t: tb }).sort((x, y) => x.t - y.t);
     resolved = null;
     lastCi = -2;
     persistMeta();
@@ -547,7 +584,7 @@
     state, mic, prefs,
     load, loadUrl, restore, unload, remove,
     play, pause, toggle() { if (state.playing) pause(); else play(); },
-    seek, playFrom, markAt, clearMarks, undoMark, timeOfChord,
+    seek, playFrom, markAt, clearMarks, undoMark, timeOfChord, realign,
     currentTime: () => (el ? el.currentTime : 0),
     setRate, setVol, setOffset, setLoopPoint, toggleLoop, clearLoop, fix, share,
     listen, stopMic, startOnGrid,

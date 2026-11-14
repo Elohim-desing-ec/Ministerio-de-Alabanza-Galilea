@@ -32,7 +32,7 @@ Está hecha con HTML, CSS y JavaScript puros. No hay que instalar ni compilar na
 | **Canciones** | Repertorio con búsqueda y filtros. **Importar PDF**: sube los PDF de LaCuerda.net (o pega el texto) y la app lee título, artista, tono, secciones, letra y acordes. Si la página trae varias versiones, eliges cuál guardar. |
 | **Canción** | Transponer, capo, notación C D E / Do Re Mi / números, solo letra para cantantes, dos columnas, arreglo editable, auto-scroll y editor con vista previa. Convierte canciones pegadas con los acordes encima de la letra. |
 | **Ensayar con la música** | En el modo escenario, pestaña *Música*: eliges el MP3 de la alabanza (o un link directo de audio) y la app detecta el tempo y cada pulso. El click va pegado a la banda, la letra avanza sola con la música (si se desfasa, tocas la línea que se está cantando y queda ajustada), puedes bajar la velocidad sin cambiar el tono y repetir una parte (A–B). Con el micrófono detecta el tempo de lo que suena en la sala (YouTube, Spotify o la banda en vivo) y arranca el metrónomo a tiempo. El audio se guarda solo en ese celular. |
-| **La letra sigue a la canción** | Se sincroniza una sola vez: en *Ensayar → Música* se abre el video de YouTube (o el MP3), se da play y se toca *Ahora* cuando empieza cada línea (la intro también). Desde ahí, cada vez que suene, los acordes y la letra cambian solos en el momento justo, aunque la intro sea larga; las demás líneas se atenúan como karaoke. Si el líder la comparte, sirve para todo el equipo; también funciona en la página de la canción al darle *Escuchar*. |
+| **La letra sigue a la canción** | **Automático:** al cargar el MP3 la app reconoce los acordes de la grabación, detecta su tono, dónde termina la intro y si repiten partes, y acomoda la letra sola (línea por línea). Con YouTube, *Sincronizar sola* escucha el video una vez (sonido de la pestaña en Chrome de computadora, o el micrófono) y hace lo mismo. Desde ahí los acordes y la letra cambian solos en el momento justo, como karaoke; *Ver los acordes en el tono de la grabación* los pone como suenan. Si algo queda corrido, se toca la línea que se está cantando, o se ajusta a mano. Si el líder la comparte, sirve para todo el equipo; también funciona en la página de la canción al darle *Escuchar*. |
 | **Rachas** | Al terminar un culto, el líder lo verifica en el evento: marca quién cumplió hasta el final. Cada servicio cumplido suma 1 a la racha de esa persona; uno no cumplido la reinicia (avisar antes que no puede no la rompe). Hay niveles con insignias (1, 3, 5, 10, 20 y 40 seguidos), la tarjeta *Tu racha* en Inicio y la tabla *Rachas del equipo*. |
 | **Equipo** | Personas, puestos, sub-equipos, cobertura por instrumento, fechas no disponibles e historial. |
 | **Chat** | Canal general, de líderes y uno por evento. Vista previa del último mensaje y contador de no leídos, links de música que se escuchan dentro, reacciones con emoji, copiar y borrar. |
@@ -93,6 +93,8 @@ js/
     cloud.js            base de datos compartida (Supabase) y cambios en vivo
     media.js            links de música (YouTube, Spotify, SoundCloud…)
     practice.js         metrónomo y pistas de ensayo (Web Audio)
+    beat.js · align.js  detectar el pulso y acomodar la letra sola (reconoce los acordes)
+    follow.js · ytsync.js  la letra sigue al MP3 o al video de YouTube
     auth.js             inicio de sesión
     importer.js         lectura de canciones (LaCuerda.net y similares)
     model.js            consultas (conflictos, carga de servicio…)

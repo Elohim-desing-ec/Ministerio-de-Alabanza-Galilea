@@ -27,10 +27,10 @@
   function items() {
     if (st.eventId) {
       const ev = M.event(st.eventId);
-      return ev ? ev.setlist.map((it) => ({ song: M.song(it.songId), key: it.key, leader: M.member(it.leaderId) })).filter((x) => x.song) : [];
+      return ev ? ev.setlist.map((it) => ({ song: M.song(it.songId), key: (st.keys && st.keys[it.songId]) || it.key, leader: M.member(it.leaderId) })).filter((x) => x.song) : [];
     }
     const s = M.song(st.songId);
-    return s ? [{ song: s, key: st.key || s.key, leader: null }] : [];
+    return s ? [{ song: s, key: (st.keys && st.keys[s.id]) || st.key || s.key, leader: null }] : [];
   }
 
   const curItem = () => items()[st.index];
@@ -189,6 +189,25 @@
     return '';
   }
 
+  function autoHTML(synced) {
+    const a = Y.auto;
+    if (a.status === 'starting') return '<div class="fl-mic"><span class="typing"><span></span><span></span><span></span></span><span>Preparando para escuchar…</span></div>';
+    if (a.status === 'listening') {
+      return `<div class="fl-mic is-on"><span class="fl-mic-dot"></span><div class="grow stack-sm"><strong>Escuchando la canción… <span id="au-secs">${fmtT(a.secs)}</span></strong><div class="fl-meter"><span id="au-level" style="width:${Math.round(a.level * 100)}%"></span></div><span class="xsmall sp-dim">Déjala sonar completa. Al terminar el video, la letra se acomoda sola.</span></div></div>
+        <div class="sp-row sp-toggles"><button class="sp-chip" data-yt="auto-done">${I('check', 13)} Ya terminó</button><button class="sp-chip" data-yt="auto-cancel">Cancelar</button></div>`;
+    }
+    if (a.status === 'analyzing') return '<div class="fl-mic"><span class="typing"><span></span><span></span><span></span></span><span>Reconociendo los acordes y acomodando la letra…</span></div>';
+    const done = a.status === 'done' ? `<span class="fl-conf fl-conf--${esc(a.confidence)}">✓ Acomodada sola · confianza ${esc(a.confidence)}</span>` : '';
+    const err = a.status === 'error' ? `<p class="small sp-warn">${esc(a.error)}</p>` : '';
+    const tab = App.align.canCaptureTab();
+    return `${done}${err}
+      ${tab ? `<button class="fl-pick" data-yt="auto-tab">${I('sparkle', 16)} ${synced ? 'Volver a sincronizar sola' : 'Sincronizar sola (escuchando)'}</button>
+        <p class="xsmall sp-dim">Chrome te pedirá compartir <strong>esta pestaña</strong>: marca <strong>"Compartir audio de la pestaña"</strong>. La app escucha el video una vez y acomoda la letra con los acordes.</p>
+        <button class="sp-chip" data-yt="auto-mic">${I('mic', 13)} Usar el micrófono</button>`
+      : `<button class="fl-pick" data-yt="auto-mic">${I('sparkle', 16)} ${synced ? 'Volver a sincronizar sola' : 'Sincronizar sola (escuchando)'}</button>
+        <p class="xsmall sp-dim">La app escucha el video por el micrófono mientras suena una vez y acomoda la letra con los acordes. Sube el volumen; en iPhone funciona mejor si el video suena en otro equipo o parlante.</p>`}`;
+  }
+
   function ytHTML(s) {
     const ys = Y.state;
     const leader = M.isLeader();
@@ -208,8 +227,9 @@
         <h4>${I('text', 14)} La letra sigue al video</h4>
         <p class="small sp-dim">${synced
           ? 'Dale play: los acordes y la letra cambian solos con el video. Si algo se adelanta, toca la línea que se está cantando mientras suena. Con el video en pausa, tocar una línea te lleva a esa parte.'
-          : 'Se hace una sola vez: toca <strong>Sincronizar</strong>, dale play y toca <strong>Ahora</strong> cada vez que empieza una línea (la intro también). Después, los acordes cambian solos con el video.'}</p>
-        <button class="fl-pick" data-rec="start">${I('hand', 16)} ${synced ? 'Volver a sincronizar' : 'Sincronizar la letra'}</button>
+          : 'Toca <strong>Sincronizar sola</strong>: la app escucha el video una vez, reconoce los acordes y acomoda la letra. Después, cada vez que suene, los acordes cambian solos.'}</p>
+        ${autoHTML(synced)}
+        <button class="fl-pick fl-pick--ghost" data-rec="start">${I('hand', 16)} ${synced ? 'Ajustar a mano' : 'Sincronizar a mano (tocando cada línea)'}</button>
         <div class="sp-row sp-toggles">
           <span class="fl-marks">${ys.marks.length ? U.plural(ys.marks.length, 'marca', 'marcas') : 'Sin marcas'}</span>
           ${ys.marks.length ? '<button class="sp-chip" data-yt="clear">Borrar</button>' : ''}
@@ -217,6 +237,15 @@
         </div>
         <button class="sp-chip ${P.prefs.follow ? 'is-on' : ''}" data-pref="follow">${I('eye', 13)} Mover la pantalla con la letra</button>
       </div>`;
+  }
+
+  function ytListHTML(s, title) {
+    const yts = M.songLinks(s.id).filter((l) => { const i = App.media.parse(l.url); return i && i.kind === 'youtube' && i.id; });
+    if (!yts.length) return '';
+    return `<div class="fl-sec fl-sec--yt">
+      <h4>${I('play', 14)} ${title}</h4>
+      ${yts.map((l) => { const i = App.media.parse(l.url); const ok = Y.hasSync(s, i.id); return `<button class="fl-yt" data-yt-open="${esc(l.url)}">${App.media.thumb(i, 'sm')}<span class="grow stack-sm"><span class="strong small truncate">${esc(l.title || App.media.cachedTitle(i.url) || 'Video de YouTube')}</span><span class="xsmall ${ok ? 'fl-ok' : 'sp-dim'}">${ok ? '✓ Letra sincronizada' : 'Sin sincronizar'}</span></span>${I('chevron-right', 16)}</button>`; }).join('')}
+    </div>`;
   }
 
   function followHTML(s) {
@@ -249,8 +278,16 @@
 
         <div class="fl-sec">
           <h4>${I('text', 14)} La letra sigue a la música</h4>
-          <p class="small sp-dim">Avanza compás por compás con la grabación. Si se adelanta o se atrasa, <strong>toca la línea que se está cantando</strong> mientras suena y queda ajustada. Con la música en pausa, tocar una línea te lleva a esa parte.${fs.shared ? ' Estás usando los ajustes que compartió el líder.' : ''}</p>
-          <button class="fl-pick fl-pick--ghost" data-rec="start">${I('hand', 16)} Sincronizar tocando cada línea</button>
+          ${fs.auto ? `<div class="fl-auto"><span class="fl-conf fl-conf--${esc(fs.auto.confidence)}">✓ La app acomodó la letra sola · confianza ${esc(fs.auto.confidence)}</span>${fs.auto.shift ? (() => {
+            const recKey = App.chords.transposeKey(s.key, fs.auto.shift);
+            const curKey = curItem() ? curItem().key : s.key;
+            return `<span class="xsmall sp-dim">La grabación está en <strong class="mono">${esc(App.chords.formatKey(recKey, st.mode))}</strong> (la hoja en ${esc(App.chords.formatKey(s.key, st.mode))}).</span>${App.chords.semitones(curKey, recKey) ? `<button class="sp-chip" data-fl="use-key" data-key="${esc(recKey)}">${I('music', 13)} Ver los acordes en ${esc(App.chords.formatKey(recKey, st.mode))}, como suena</button>` : ''}`;
+          })() : ''}</div>` : ''}
+          <p class="small sp-dim">La letra y los acordes cambian solos con la grabación. Si algo se adelanta o se atrasa, <strong>toca la línea que se está cantando</strong> mientras suena y queda ajustada. Con la música en pausa, tocar una línea te lleva a esa parte.${fs.shared ? ' Estás usando los ajustes que compartió el líder.' : ''}</p>
+          <div class="sp-row sp-toggles">
+            <button class="sp-chip" data-fl="realign">${I('sparkle', 13)} Volver a acomodar sola</button>
+            <button class="sp-chip" data-rec="start">${I('hand', 13)} Ajustar a mano</button>
+          </div>
           <div class="sp-row sp-toggles">
             <span class="fl-marks">${fs.marks.length ? U.plural(fs.marks.length, 'ajuste', 'ajustes') : 'Sin ajustes'}</span>
             ${fs.marks.length ? '<button class="sp-chip" data-fl="clear-marks">Borrar ajustes</button>' : ''}
@@ -282,7 +319,8 @@
           <div class="sp-row"><span>${I('metronome', 14)} Click</span><input class="sp-range grow" type="range" min="0" max="100" value="${clickVol}" data-fl-click aria-label="Volumen del click"></div>
           <div class="sp-row"><span>Sincronía</span><button class="sp-chip" data-fl="off-">−10 ms</button><span class="mono">${F.prefs.offsetMs} ms</span><button class="sp-chip" data-fl="off+">+10 ms</button></div>
           <p class="xsmall sp-dim">Si el click suena antes o después del bombo, ajústalo aquí.</p>
-        </div>`;
+        </div>
+        ${ytListHTML(s, 'O con el video de YouTube')}`;
     }
     const links = M.songLinks(s.id).filter((l) => { const i = App.media.parse(l.url); return i && i.kind === 'audio'; });
     const yts = M.songLinks(s.id).filter((l) => { const i = App.media.parse(l.url); return i && i.kind === 'youtube' && i.id; });
@@ -296,7 +334,7 @@
         <h4>${I('play', 14)} Con el video de YouTube</h4>
         ${yts.map((l) => { const i = App.media.parse(l.url); const ok = Y.hasSync(s, i.id); return `<button class="fl-yt" data-yt-open="${esc(l.url)}">${App.media.thumb(i, 'sm')}<span class="grow stack-sm"><span class="strong small truncate">${esc(l.title || App.media.cachedTitle(i.url) || 'Video de YouTube')}</span><span class="xsmall ${ok ? 'fl-ok' : 'sp-dim'}">${ok ? '✓ Letra sincronizada' : 'Sin sincronizar'}</span></span>${I('chevron-right', 16)}</button>`; }).join('')}
       </div><div class="fl-or"><span>o con el audio</span></div>` : ''}
-      ${mine && fs.status === 'loading' ? `<div class="fl-progress"><div class="row-between xsmall"><span>Analizando el ritmo…</span><span class="mono" id="fl-pct">${Math.round(fs.progress * 100)}%</span></div><div class="fl-bar"><span id="fl-bar" style="width:${Math.round(fs.progress * 100)}%"></span></div></div>` : ''}
+      ${mine && fs.status === 'loading' ? `<div class="fl-progress"><div class="row-between xsmall"><span id="fl-phase">${esc(fs.phase || 'Analizando…')}</span><span class="mono" id="fl-pct">${Math.round(fs.progress * 100)}%</span></div><div class="fl-bar"><span id="fl-bar" style="width:${Math.round(fs.progress * 100)}%"></span></div></div>` : ''}
       ${mine && fs.status === 'error' ? `<p class="small sp-warn">${esc(fs.error)}</p>` : ''}
       <label class="fl-pick">${I('music', 16)} Elegir audio (MP3)<input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-fl-file hidden></label>
       ${links.length ? `<div class="stack-sm"><span class="xsmall sp-dim">Audios compartidos de esta canción</span>${links.map((l) => `<button class="sp-chip" data-fl-url="${esc(l.url)}">${I('link', 13)} ${esc(l.title || App.media.fallbackTitle(App.media.parse(l.url)))}</button>`).join('')}</div>` : ''}
@@ -649,7 +687,12 @@
       }
       case 'state': refreshTransport(); break;
       case 'marks': if (!st.rec) refreshPanel(); break;
-      case 'yt': keepScroll(draw); break;
+      case 'yt': case 'auto': keepScroll(draw); break;
+      case 'auto-level': {
+        const lv = q('#au-level'); if (lv) lv.style.width = Math.round(Y.auto.level * 100) + '%';
+        const sc = q('#au-secs'); if (sc) sc.textContent = fmtT(Y.auto.secs);
+        break;
+      }
     }
   }
 
@@ -674,6 +717,7 @@
         const pct = Math.round(F.state.progress * 100);
         if (q('#fl-pct')) q('#fl-pct').textContent = pct + '%';
         if (q('#fl-bar')) q('#fl-bar').style.width = pct + '%';
+        if (q('#fl-phase')) q('#fl-phase').textContent = F.state.phase || 'Analizando…';
         break;
       }
       case 'mic-level': {
@@ -765,6 +809,10 @@
     if (yta) {
       if (yta.dataset.yt === 'close') { Y.close(); el.querySelector('#yt-dock').hidden = true; }
       if (yta.dataset.yt === 'clear') Y.clearMarks();
+      if (yta.dataset.yt === 'auto-tab') Y.autoStart(cur.song, 'tab');
+      if (yta.dataset.yt === 'auto-mic') Y.autoStart(cur.song, 'mic');
+      if (yta.dataset.yt === 'auto-done') Y.autoFinish(cur.song);
+      if (yta.dataset.yt === 'auto-cancel') Y.autoCancel();
       if (yta.dataset.yt === 'share') { Y.share(cur.song); App.ui.toast('Listo: todo el equipo verá la letra sincronizada con este video.'); }
       return;
     }
@@ -849,6 +897,15 @@
         refreshPanel();
         break;
       case 'clear-marks': F.clearMarks(); break;
+      case 'realign': F.realign(s); break;
+      case 'use-key': {
+        const b = el.querySelector('[data-fl="use-key"]');
+        st.keys = st.keys || {};
+        st.keys[s.id] = b ? b.dataset.key : s.key;
+        keepScroll(draw);
+        App.ui.toast('Los acordes ahora están en el tono de la grabación.');
+        break;
+      }
       case 'share': F.share(s); App.ui.toast('Listo: el equipo verá la letra sincronizada con esta grabación.'); break;
       case 'a': F.setLoopPoint('a'); break;
       case 'b': F.setLoopPoint('b'); break;

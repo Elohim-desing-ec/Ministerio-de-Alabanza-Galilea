@@ -55,15 +55,20 @@
     let a = null, b = null;
     for (const m of ms) { if (m.t <= t) a = m; else { b = m; break; } }
     if (!a) return null;
-    const sa = stepOf(plan, a.ci);
-    if (sa == null) return null;
-    let step;
+    const ia = plan.findIndex((x) => x.ci === a.ci);
+    if (ia < 0) return null;
+    const sa = plan[ia].startStep;
     if (b) {
-      const sb = stepOf(plan, b.ci);
-      if (sb == null || sb <= sa) return plan.find((x) => x.ci === a.ci) || null;
-      step = sa + ((t - a.t) / (b.t - a.t)) * (sb - sa);
+      const ib = plan.findIndex((x) => x.ci === b.ci);
+      // Si la siguiente marca vuelve atrás (se repite una parte), esta línea dura hasta esa marca
+      let iEnd = ib;
+      if (ib <= ia) { iEnd = ia + 1; while (iEnd < plan.length && !plan[iEnd].lineStart) iEnd++; }
+      const lastEv = plan[plan.length - 1];
+      const sEnd = iEnd < plan.length ? plan[iEnd].startStep : lastEv.startStep + lastEv.steps;
+      const step = sa + ((t - a.t) / (b.t - a.t)) * (sEnd - sa);
       const ev = evAtStep(plan, step);
-      return ev && ev.ci >= b.ci ? plan[Math.max(0, plan.findIndex((x) => x.ci === b.ci) - 1)] : ev;
+      const k = ev ? plan.indexOf(ev) : -1;
+      return k >= iEnd ? plan[Math.max(ia, iEnd - 1)] : ev;
     }
     // Después de la última marca: velocidad promedio de las marcas (o el BPM)
     let secPerStep = 60 / bpm / sub;
@@ -82,10 +87,13 @@
     if (exact) return exact.t;
     const s = stepOf(plan, ci);
     if (s == null || !ms.length) return null;
-    let a = null, b = null;
-    for (const m of ms) { const sm = stepOf(plan, m.ci); if (sm <= s) a = m; else if (!b) b = m; }
-    if (a && b) { const sa = stepOf(plan, a.ci), sb = stepOf(plan, b.ci); return a.t + ((s - sa) / (sb - sa)) * (b.t - a.t); }
-    return a ? a.t : b ? b.t : null;
+    // Primera vez que la canción pasa por ese acorde
+    for (let k = 0; k < ms.length - 1; k++) {
+      const sa = stepOf(plan, ms[k].ci), sb = stepOf(plan, ms[k + 1].ci);
+      if (sa <= s && s < sb) return ms[k].t + ((s - sa) / (sb - sa)) * (ms[k + 1].t - ms[k].t);
+    }
+    const before = ms.filter((m) => stepOf(plan, m.ci) <= s);
+    return before.length ? before[before.length - 1].t : ms[0].t;
   }
 
   function setMarks(marks) {
@@ -103,15 +111,62 @@
     if (!player || !player.getCurrentTime) return;
     const t = Math.max(0, player.getCurrentTime() - 0.12);
     const plan = P.plan;
-    const sc = stepOf(plan, ci);
-    const kept = state.marks.filter((m) => {
-      if (Math.abs(m.t - t) < 0.35) return false;
-      const sm = stepOf(plan, m.ci);
-      if (m.t > t && sm <= sc) return false;
-      if (m.t < t && sm >= sc) return false;
-      return true;
-    });
+    const kept = state.marks.filter((m) => Math.abs(m.t - t) > 1.2);
     setMarks(kept.concat({ ci, t: Math.round(t * 100) / 100 }));
+  }
+
+  // ---------------------------------------------------------------------
+  // Sincronizar sola: la app escucha el video una vez y acomoda la letra
+  // ---------------------------------------------------------------------
+  const auto = { status: 'idle', mode: 'mic', level: 0, secs: 0, error: '', confidence: '', shift: 0 };
+  let cap = null, capVideoStart = 0;
+
+  async function autoStart(song, mode) {
+    if (!player) return;
+    Object.assign(auto, { status: 'starting', mode, error: '', level: 0, secs: 0 });
+    emit({ type: 'auto' });
+    try {
+      cap = await App.align.capture({ mode, onLevel: (l, s) => { auto.level = l; auto.secs = s; emit({ type: 'auto-level' }); } });
+    } catch (e) {
+      Object.assign(auto, { status: 'error', error: e && e.name === 'NotAllowedError' ? 'Hay que permitir el acceso para que la app pueda escuchar.' : (e.message || 'No se pudo escuchar.') });
+      emit({ type: 'auto' });
+      return;
+    }
+    seek(0);
+    play();
+    auto.status = 'listening';
+    emit({ type: 'auto' });
+    // Momento del video en que empezó a escuchar
+    const waitFirst = () => new Promise((res) => { const t = setInterval(() => { if (cap && cap.startedAt()) { clearInterval(t); res(); } }, 30); });
+    await waitFirst();
+    const first = cap.startedAt();
+    capVideoStart = Math.max(0, currentTime() - first.len - (mode === 'tab' ? 0.08 : 0.05));
+  }
+
+  async function autoFinish(song) {
+    if (!cap || auto.status !== 'listening') return;
+    const rec = cap.stop();
+    cap = null;
+    pause();
+    if (rec.samples.length < rec.sr * 20) { Object.assign(auto, { status: 'error', error: 'Escuchó muy poco. Deja sonar la canción completa (o al menos un minuto).' }); emit({ type: 'auto' }); return; }
+    auto.status = 'analyzing';
+    emit({ type: 'auto' });
+    try {
+      const an = await App.beat.analyzeChannels([rec.samples], rec.sr, { hint: song.bpm || 0, beatsPerBar: P.meter.beats });
+      const r = await App.align.align({ samples: rec.samples, sr: rec.sr, beats: an.beats, plan: P.plan, sub: P.meter.sub });
+      setMarks(r.marks.map((m) => ({ ci: m.ci, t: Math.round((m.t + capVideoStart) * 100) / 100 })));
+      Object.assign(auto, { status: 'done', confidence: r.confidence, shift: r.shift });
+    } catch (e) {
+      Object.assign(auto, { status: 'error', error: e.message || 'No se pudo acomodar la letra.' });
+    }
+    emit({ type: 'auto' });
+  }
+
+  function autoCancel() {
+    if (cap) { try { cap.stop(); } catch (e) { /* nada */ } }
+    cap = null;
+    auto.status = 'idle';
+    emit({ type: 'auto' });
   }
 
   function undoMark() { if (state.marks.length) setMarks(state.marks.slice(0, -1)); }
@@ -153,6 +208,7 @@
           onReady: () => { state.status = 'ready'; try { state.duration = player.getDuration() || 0; } catch (e) { /* nada */ } emit({ type: 'yt' }); },
           onStateChange: (ev) => {
             state.playing = ev.data === 1;
+            if (ev.data === 0 && auto.status === 'listening') { const s = App.model.song(state.songId); if (s) autoFinish(s); }
             if (state.playing) { try { state.duration = player.getDuration() || state.duration; } catch (e) { /* nada */ } loop(); }
             emit({ type: 'state' });
           },
@@ -208,6 +264,8 @@
   const currentTime = () => { try { return player ? player.getCurrentTime() : 0; } catch (e) { return 0; } };
 
   function close(notify = true) {
+    if (cap) autoCancel();
+    auto.status = 'idle';
     if (raf) cancelAnimationFrame(raf);
     raf = null;
     if (player) { try { player.destroy(); } catch (e) { /* nada */ } }
@@ -234,6 +292,7 @@
     planFor,
     state, open, close, play, pause, toggle, seek, playFrom, currentTime,
     markNow, undoMark, clearMarks, share,
+    auto, autoStart, autoFinish, autoCancel,
     chordAt, timeOf, marksFor, hasSync,
     isActive: (songId) => state.status !== 'empty' && state.songId === songId,
     on(fn) { listeners.add(fn); return () => listeners.delete(fn); }

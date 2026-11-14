@@ -430,3 +430,5 @@
 /* La letra deja espacio al video */
 @media (min-width: 1001px) { .stage.has-video .stage-body { padding-right: calc(min(340px, 42vw) + 40px); } }
 @media (max-width: 1000px) { .stage.has-video .stage-body { padding-top: calc(min(340px, 46vw) * 9 / 16 + 28px); } }
+
+.fl-auto { display: flex; flex-direction: column; gap: 6px; }
