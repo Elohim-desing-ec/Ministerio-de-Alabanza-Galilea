@@ -179,24 +179,33 @@
    * Devuelve el HTML de la hoja de acordes.
    * opts: n (semitonos), capo, key (original), mode, showChords, arrangement
    */
-  function render(text, { n = 0, capo = 0, key = null, mode = 'letras', arrangement = null } = {}) {
-    const esc = App.utils.esc;
+  /** Secciones en el orden en que se tocan (según el arreglo, si hay). */
+  function orderedSections(text, arrangement) {
     const sections = parseChart(text);
     const byName = new Map();
     sections.forEach((s) => { if (s.name && !byName.has(norm(s.name))) byName.set(norm(s.name), s); });
-
-    let order = sections;
     if (arrangement && arrangement.length) {
       const mapped = arrangement.map((name) => byName.get(norm(name))).filter(Boolean);
-      if (mapped.length) {
-        // Las secciones sin nombre (antes del primer título) se mantienen al inicio
-        order = sections.filter((s) => !s.name).concat(mapped);
-      }
+      // Las secciones sin nombre (antes del primer título) se mantienen al inicio
+      if (mapped.length) return sections.filter((s) => !s.name).concat(mapped);
     }
+    return sections;
+  }
 
+  /**
+   * Devuelve el HTML de la hoja de acordes.
+   * opts: n (semitonos), capo, key (original), mode, showChords, arrangement
+   * Cada acorde lleva data-ci (su número en el orden en que se toca) para
+   * que el modo ensayo pueda resaltarlo mientras suena.
+   */
+  function render(text, { n = 0, capo = 0, key = null, mode = 'letras', arrangement = null } = {}) {
+    const esc = App.utils.esc;
+    const order = orderedSections(text, arrangement);
     const shift = n - capo;
     const fmt = (c) => esc(formatChord(c, { n: shift, key: key ? transposeKey(key, 0) : null, mode }));
     const seenCount = {};
+    let ci = 0;
+    const cc = (chord) => `<span class="cc" data-ci="${ci++}">${fmt(chord)}</span>`;
 
     return order.map((sec) => {
       const nk = norm(sec.name);
@@ -206,11 +215,60 @@
       const lines = sec.lines.map((l) => {
         if (l.type === 'blank') return '<div class="cl cl--blank"></div>';
         if (l.type === 'text') return `<div class="cl cl--text">${esc(l.text)}</div>`;
-        if (l.type === 'chords') return `<div class="cl cl--chords">${l.segs.filter((s) => s.chord).map((s) => `<span class="cc">${fmt(s.chord)}</span>`).join('')}</div>`;
-        return `<div class="cl">${l.segs.map((s) => `<span class="cs"><span class="cc">${s.chord ? fmt(s.chord) : ''}</span><span class="cy">${esc(s.text)}</span></span>`).join('')}</div>`;
+        if (l.type === 'chords') return `<div class="cl cl--chords">${l.segs.filter((s) => s.chord).map((s) => cc(s.chord)).join('')}</div>`;
+        return `<div class="cl">${l.segs.map((s) => `<span class="cs">${s.chord ? cc(s.chord) : '<span class="cc"></span>'}<span class="cy">${esc(s.text)}</span></span>`).join('')}</div>`;
       }).join('');
       return `<section class="chart-sec" data-sec="${esc(sec.name)}">${head}${lines}</section>`;
     }).join('');
+  }
+
+  /**
+   * Acordes en el orden en que se tocan, con el mismo número (ci) que render().
+   * Cada elemento: { ci, chord, section, sectionStart, lineStart, perLine }
+   */
+  function timeline(text, { arrangement = null } = {}) {
+    const out = [];
+    let ci = 0;
+    orderedSections(text, arrangement).forEach((sec) => {
+      let first = true;
+      sec.lines.forEach((l) => {
+        if (!l.segs) return;
+        const chords = l.segs.filter((sg) => sg.chord).map((sg) => sg.chord);
+        chords.forEach((chord, k) => {
+          out.push({ ci: ci++, chord, section: sec.name || '', sectionStart: first, lineStart: k === 0, perLine: chords.length });
+          first = false;
+        });
+      });
+    });
+    return out;
+  }
+
+  /**
+   * Notas de un acorde: { root, bass, intervals } (clases de altura 0-11).
+   * n = semitonos a transponer.
+   */
+  function chordTones(ch, n = 0) {
+    const p = parseChord(ch);
+    if (!p) return null;
+    const sfx = p.suffix.replace(/[()]/g, '');
+    const low = sfx.toLowerCase();
+    const minor = /^m(?!aj)/.test(sfx) || /^min/.test(low) || /^-/.test(sfx);
+    let iv;
+    if (/dim|°|º/.test(low) && !/ø|m7b5/.test(low)) iv = [0, 3, 6];
+    else if (/ø|m7b5/.test(low)) iv = [0, 3, 6, 10];
+    else if (/aug|\+/.test(low)) iv = [0, 4, 8];
+    else if (/sus2/.test(low)) iv = [0, 2, 7];
+    else if (/sus/.test(low)) iv = [0, 5, 7];
+    else if (/^5$/.test(sfx)) iv = [0, 7];
+    else iv = [0, minor ? 3 : 4, 7];
+    const rest = sfx.replace(/^(m(?!aj)|min|-)/, '');
+    if (/maj7|ma7|M7|7M|Δ/.test(rest)) iv.push(11);
+    else if (/(^|[^d])(7|9|11|13)/.test(rest) && !/add/.test(rest) && !/dim7|°7/.test(low)) iv.push(10);
+    if (/dim7|°7/.test(low)) iv.push(9);
+    if (/(^|[^1])6/.test(rest) && !/b6/.test(rest)) iv.push(9);
+    if (/9|add2|(^|[^1])2/.test(rest) && !/sus2/.test(low)) iv.push(14);
+    const uniq = Array.from(new Set(iv));
+    return { root: mod(p.root + n), bass: p.bass != null ? mod(p.bass + n) : mod(p.root + n), intervals: uniq, minor };
   }
 
   // ---- Convertir "acordes arriba de la letra" → formato en línea ----
@@ -311,7 +369,7 @@
     KEYS: MAJOR_NAMES, MINOR_KEYS: MINOR_NAMES,
     parseKey, transposeKey, semitones, keysFor, readKey,
     parseChord, formatChord, formatKey,
-    parseChart, sectionNames, progression, render,
+    parseChart, sectionNames, progression, render, orderedSections, timeline, chordTones,
     isChordLine, fromChordsOverLyrics, toChord, sectionName, chordTokens
   };
 })();

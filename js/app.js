@@ -1,7 +1,7 @@
 /* =========================================================================
    SELAH · Arranque, navegación y estructura de la app
    Rutas por hash: #inicio, #calendario, #evento-e4, #canciones,
-   #cancion-s1, #equipo, #equipo-m3, #chat, #asistente, #ajustes
+   #cancion-s1, #escuchar, #equipo, #equipo-m3, #chat, #asistente, #ajustes
    Para agregar una pantalla: crea js/views/mi-vista.js con
    App.views['mivista'] = { title, render(root, param, ctx) } y enlázala.
    ========================================================================= */
@@ -12,10 +12,13 @@
     { route: 'inicio', label: 'Inicio', icon: 'home', match: ['inicio'] },
     { route: 'calendario', label: 'Agenda', icon: 'calendar', match: ['calendario', 'evento'] },
     { route: 'canciones', label: 'Canciones', icon: 'music', match: ['canciones', 'cancion'] },
-    { route: 'equipo', label: 'Equipo', icon: 'users', match: ['equipo'] },
+    { route: 'escuchar', label: 'Escuchar', icon: 'headphones', match: ['escuchar'] },
     { route: 'chat', label: 'Chat', icon: 'chat', match: ['chat'] },
-    { route: 'asistente', label: 'Asistente', icon: 'sparkle', match: ['asistente'] }
+    { route: 'equipo', label: 'Equipo', icon: 'users', match: ['equipo'], more: true },
+    { route: 'asistente', label: 'Asistente', icon: 'sparkle', match: ['asistente'], more: true }
   ];
+  // En el celular, Equipo, Asistente y Ajustes van en "Más"
+  const MORE = NAV.filter((n) => n.more).map((n) => n.route).concat('ajustes');
 
   const main = document.getElementById('view');
   let current = { name: null, param: null };
@@ -55,7 +58,7 @@
   function markNav() {
     U.$$('[data-route]').forEach((a) => {
       const item = NAV.find((n) => n.route === a.dataset.route);
-      const on = item ? item.match.includes(current.name) : a.dataset.route === current.name;
+      const on = a.dataset.route === 'mas' ? MORE.includes(current.name) : item ? item.match.includes(current.name) : a.dataset.route === current.name;
       a.classList.toggle('is-active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
@@ -66,11 +69,16 @@
     const pending = M.myPendingCount();
     const s = M.settings();
 
-    U.$('#nav').innerHTML = NAV.map((n) => `
-      <a class="nav-item" href="#${n.route}" data-route="${n.route}">${I(n.icon, 18)}<span>${n.label}</span>${n.route === 'inicio' && pending ? `<span class="nav-count" title="Confirmaciones pendientes">${pending}</span>` : ''}</a>`).join('');
+    const unread = App.chatUnread ? App.chatUnread() : 0;
+    const badge = (n) => (n.route === 'inicio' && pending ? `<span class="nav-count" title="Confirmaciones pendientes">${pending}</span>`
+      : n.route === 'chat' && unread ? `<span class="nav-count nav-count--chat" title="Mensajes sin leer">${unread > 99 ? '99+' : unread}</span>` : '');
 
-    U.$('#tabbar').innerHTML = NAV.map((n) => `
-      <a class="tab" href="#${n.route}" data-route="${n.route}">${I(n.icon, 20)}<span>${n.label}</span></a>`).join('');
+    U.$('#nav').innerHTML = NAV.map((n) => `
+      <a class="nav-item" href="#${n.route}" data-route="${n.route}">${I(n.icon, 18)}<span>${n.label}</span>${badge(n)}</a>`).join('');
+
+    U.$('#tabbar').innerHTML = NAV.filter((n) => !n.more).map((n) => `
+      <a class="tab" href="#${n.route}" data-route="${n.route}"><span class="tab-icon">${I(n.icon, 20)}${n.route === 'chat' && unread ? '<span class="tab-dot"></span>' : ''}${n.route === 'inicio' && pending ? '<span class="tab-dot tab-dot--warn"></span>' : ''}</span><span>${n.label}</span></a>`).join('') +
+      `<button class="tab" type="button" data-route="mas" id="tab-more">${I('more', 20)}<span>Más</span></button>`;
 
     U.$('#brand-sub').textContent = s.churchName;
 
@@ -120,6 +128,19 @@
     });
   }
 
+  /** Menú "Más" del celular. */
+  function moreMenu() {
+    const items = NAV.filter((n) => n.more).concat([{ route: 'ajustes', label: 'Ajustes', icon: 'sliders' }]);
+    const m = ui.sheet({
+      title: 'Más',
+      body: `<div class="menu-list more-list">${items.map((n) => `
+        <a class="menu-item" href="#${n.route}" data-close>${I(n.icon, 18)}<span class="grow"><span class="strong">${n.label}</span></span>${I('chevron-right', 16)}</a>`).join('')}
+        ${App.pwa.isStandalone() ? '' : `<button class="menu-item" data-act="install">${I('arrow-down', 18)}<span class="grow"><span class="strong">Instalar app</span></span></button>`}
+      </div>`
+    });
+    m.body.addEventListener('click', (e) => { if (e.target.closest('[data-act="install"]')) { m.close(); App.pwa.install(); } });
+  }
+
   App.router = {
     go(name, param) {
       const h = `#${name}${param ? '-' + param : ''}`;
@@ -147,6 +168,7 @@
     });
     U.$('#user-chip').addEventListener('click', userMenu);
     U.$('#top-user').addEventListener('click', userMenu);
+    U.$('#tabbar').addEventListener('click', (e) => { if (e.target.closest('#tab-more')) moreMenu(); });
   }
 
   function syncIndicator() {
@@ -163,25 +185,25 @@
     App.cloud.onStatus(paint);
   }
 
-  function splash(text) {
-    U.$('#login-root').innerHTML = `<main class="login"><section class="login-card login-card--wait"><span class="login-mark">${I('logo', 30)}</span><p class="muted">${esc(text)}</p><span class="typing"><span></span><span></span><span></span></span></section></main>`;
-  }
-
   async function boot() {
     App.pwa.register();
     App.store.init();
     App.applyTheme(App.store.state.prefs.theme);
+    const intro = App.intro.show();
+    let notice = null;
 
     // ---- Con base de datos compartida ----
     if (App.cloud && App.cloud.enabled) {
       document.body.classList.add('is-locked');
-      splash('Conectando con el ministerio…');
       let profile = null;
       try { profile = await App.cloud.restore(); } catch (e) { profile = null; }
       if (profile) {
-        try { await App.cloud.pull(); } catch (e) { ui.toast('Sin conexión: ves lo último guardado en este celular.', { kind: 'info', timeout: 5000 }); }
+        try { await App.cloud.pull(); } catch (e) { notice = 'Sin conexión: ves lo último guardado en este celular.'; }
         App.store.update((s) => { s.session.userId = profile.member_id; }, { silent: true, remote: true });
         App.cloud.startRealtime();
+      }
+      await intro.ready;
+      if (profile) {
         U.$('#login-root').innerHTML = '';
         document.body.classList.remove('is-locked');
         start();
@@ -189,17 +211,21 @@
         App.login.show(() => start());
       }
       syncIndicator();
+      await intro.leave();
+      if (notice) ui.toast(notice, { kind: 'info', timeout: 5000 });
       return;
     }
 
     // ---- Solo en este navegador ----
     const session = App.auth.current();
+    await intro.ready;
     if (session) {
       App.store.update((s) => { if (!s.members.some((m) => m.id === s.session.userId)) s.session.userId = session.memberId; }, { silent: true });
       start();
     } else {
       App.login.show(() => start());
     }
+    await intro.leave();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

@@ -190,7 +190,7 @@
   ];
 
   const MEMBERS = [
-    ['m1', 'Byron', ['director', 'voz', 'acustica'], ['t1', 't2'], { admin: true, leader: true }],
+    ['m1', 'Byron David', ['director', 'voz', 'acustica'], ['t1', 't2'], { admin: true, leader: true }],
     ['m2', 'Samuel Ortega', ['director', 'voz', 'acustica'], ['t2', 't3'], { leader: true }],
     ['m3', 'Valeria Méndez', ['voz', 'coro'], ['t1']],
     ['m4', 'Andrés Castillo', ['voz', 'coro'], ['t2']],
@@ -221,7 +221,7 @@
       session: { userId: 'm1' },
       prefs: { notation: 'letras', timeFormat: '12h', theme: 'dark' },
       teams: [],
-      members: [{ id: 'm1', name: 'Byron', roles: ['director', 'voz'], teams: [], phone: '', email: '', unavailable: [], leader: true, admin: true }],
+      members: [{ id: 'm1', name: 'Byron David', roles: ['director', 'voz'], teams: [], phone: '', email: '', unavailable: [], leader: true, admin: true }],
       songs: [],
       events: [],
       messages: []

@@ -35,6 +35,7 @@
         <div class="chip-row">${m.roles.map((r) => `<span class="tag">${I(M.groupIcon(r), 12)}&nbsp;${esc(M.posLabel(r))}</span>`).join('')}</div>
         <div class="mc-foot xsmall muted">
           <span><strong class="mono">${served}</strong> ${served === 1 ? 'servicio' : 'servicios'} en 60 días</span>
+          ${M.streak(m.id).total ? ui.flame(M.streak(m.id).current) : ''}
           ${blockedSoon ? `<span class="warn-text">${I('block', 12)} ${blockedSoon} no disp.</span>` : ''}
         </div>
         <div class="mc-next xsmall">${next ? `Próximo: <strong>${esc(next.event.title)}</strong> · ${U.fmtDate(next.event.date, 'short')}` : '<span class="faint">Sin servicios próximos</span>'}</div>
@@ -88,6 +89,16 @@
             <span class="small muted">${M.servedCount(m.id)} servicios en 60 días · último ${M.lastServed(m.id) ? U.relDay(M.lastServed(m.id)).toLowerCase() : 'nunca'}</span>
           </div>
         </div>
+
+        ${(() => {
+          const s = M.streak(m.id);
+          return `<section class="stack-sm">
+            <h3 class="eyebrow">Racha</h3>
+            <div class="ms-streak">${ui.flame(s.current, 'md')}<span class="small"><strong>${s.current}</strong> seguidos · mejor <strong>${s.best}</strong> · <strong>${s.total}</strong> cumplidos${s.missed ? ` · ${s.missed} no cumplidos` : ''}</span></div>
+            <div class="st-badges">${M.LEVELS.map((l) => `<span class="st-badge ${s.best >= l.n ? 'is-on' : ''}" title="${esc(l.name)}">${l.icon}<span>${l.n}</span></span>`).join('')}</div>
+            ${s.history.length ? `<div class="ms-streak-hist">${s.history.slice(0, 8).map((h) => `<a class="ms-sh ${h.done ? 'is-done' : 'is-miss'}" href="#evento-${esc(h.event.id)}" data-close title="${esc(h.event.title)}">${h.done ? I('check', 12) : I('x', 12)}<span>${U.fmtDate(h.event.date, 'short')}</span></a>`).join('')}</div>` : ''}
+          </section>`;
+        })()}
 
         <section class="stack-sm">
           <h3 class="eyebrow">Contacto</h3>
@@ -349,7 +360,7 @@
               </div>
               <div id="member-list">${list()}</div>
             </div>
-            <aside class="stack">${coverage()}</aside>
+            <aside class="stack">${App.streak.board()}${coverage()}</aside>
           </div>
         </div>`;
 

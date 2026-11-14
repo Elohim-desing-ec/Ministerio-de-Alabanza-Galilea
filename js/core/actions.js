@@ -179,6 +179,72 @@
     return msg;
   };
 
+  /** Reacción con emoji: la misma persona la pone o la quita. */
+  A.react = (messageId, emoji, memberId = App.model.me().id) => store.update((s) => {
+    const msg = s.messages.find((m) => m.id === messageId);
+    if (!msg) return;
+    const r = msg.reactions = Object.assign({}, msg.reactions);
+    const list = (r[emoji] || []).slice();
+    const i = list.indexOf(memberId);
+    if (i >= 0) list.splice(i, 1); else list.push(memberId);
+    if (list.length) r[emoji] = list; else delete r[emoji];
+  });
+
+  A.deleteMessage = (id) => store.update((s) => { s.messages = s.messages.filter((m) => m.id !== id); });
+
+  // ---- Links de música ----
+  const cleanLink = (data, memberId) => ({
+    id: U.uid('l'),
+    url: String(data.url || '').trim(),
+    title: String(data.title || '').trim().slice(0, 140),
+    songId: data.songId || null,
+    memberId: memberId || null,
+    ts: Date.now()
+  });
+
+  /** Cualquier persona del equipo puede compartir un link en un evento. */
+  A.addEventLink = (eventId, data, memberId = App.model.me().id) => {
+    const link = cleanLink(data, memberId);
+    if (!link.url) return null;
+    store.update((s) => {
+      const ev = findEvent(s, eventId);
+      if (ev) ev.links = (ev.links || []).concat(link);
+    });
+    return link;
+  };
+
+  A.removeEventLink = (eventId, linkId) => store.update((s) => {
+    const ev = findEvent(s, eventId);
+    if (ev) ev.links = (ev.links || []).filter((l) => l.id !== linkId);
+  });
+
+  /** Grabaciones de referencia de una canción (solo líderes). */
+  A.addSongLink = (songId, data) => {
+    const link = cleanLink(data, App.model.me().id);
+    if (!link.url) return null;
+    store.update((s) => {
+      const song = s.songs.find((x) => x.id === songId);
+      if (song) song.links = (song.links || []).concat(link);
+    });
+    return link;
+  };
+
+  A.removeSongLink = (songId, linkId) => store.update((s) => {
+    const song = s.songs.find((x) => x.id === songId);
+    if (song) song.links = (song.links || []).filter((l) => l.id !== linkId);
+  });
+
+  // ---- Rachas: verificar que el servicio se cumplió ----
+  A.verifyEvent = (eventId, { done = [], missed = [] }) => store.update((s) => {
+    const ev = findEvent(s, eventId);
+    if (ev) ev.verified = { at: Date.now(), by: App.model.me().id, done: done.slice(), missed: missed.slice() };
+  });
+
+  A.unverifyEvent = (eventId) => store.update((s) => {
+    const ev = findEvent(s, eventId);
+    if (ev) delete ev.verified;
+  });
+
   A.updateSettings = (patch) => store.update((s) => { Object.assign(s.settings, patch); });
 
   App.actions = A;

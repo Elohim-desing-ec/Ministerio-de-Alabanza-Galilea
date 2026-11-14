@@ -12,30 +12,46 @@
       document.title = `Entrar · ${App.config.siteTitle}`;
       root.innerHTML = `
         <main class="login">
-          <section class="login-card" aria-labelledby="login-title">
-            <span class="login-mark">${I('logo', 30)}</span>
-            <div class="login-head">
-              <span class="eyebrow">${esc(s.ministryName)}</span>
-              <h1 class="login-title" id="login-title">${esc(s.churchName)}</h1>
-              <p class="muted">Agenda, equipo, setlists y acordes del ministerio en un solo lugar.</p>
-            </div>
-            <form class="login-form" id="login-form" autocomplete="on" novalidate>
-              <div class="field">
-                <label class="field-label" for="lg-user">Usuario</label>
-                <input class="input" id="lg-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+          <div class="login-bg" aria-hidden="true"><span class="login-glow login-glow--a"></span><span class="login-glow login-glow--b"></span></div>
+          <div class="login-shell">
+            <section class="login-hero" aria-label="${esc(s.ministryName)} ${esc(s.churchName)}">
+              <span class="login-logo">${App.intro.MARK}</span>
+              <div class="login-hero-text">
+                <span class="login-eyebrow">${esc(s.ministryName)}</span>
+                <h1 class="login-title">${esc(s.churchName)}</h1>
+                <p class="login-lead">Agenda, equipo, setlists, acordes y ensayo del ministerio en un solo lugar.</p>
               </div>
-              <div class="field">
-                <label class="field-label" for="lg-pass">Contraseña</label>
-                <div class="pw">
-                  <input class="input" id="lg-pass" name="password" type="password" autocomplete="current-password" required>
-                  <button class="pw-toggle" type="button" data-act="toggle" aria-controls="lg-pass">Mostrar</button>
+              <ul class="login-feats">
+                <li><span class="login-feat-icon">${I('calendar', 16)}</span><span><strong>Agenda y equipo</strong><span>Quién sirve, cuándo y en qué puesto.</span></span></li>
+                <li><span class="login-feat-icon">${I('music', 16)}</span><span><strong>Setlists y acordes</strong><span>En el tono de cada servicio.</span></span></li>
+                <li><span class="login-feat-icon">${I('headphones', 16)}</span><span><strong>Escuchar y ensayar</strong><span>Grabaciones, metrónomo y pistas.</span></span></li>
+              </ul>
+              <div class="login-wave" aria-hidden="true">${Array.from({ length: 40 }, (_, i) => `<i style="--i:${i};--h:${(0.25 + 0.75 * Math.abs(Math.sin(i * 0.42 + 0.3))).toFixed(2)}"></i>`).join('')}</div>
+            </section>
+
+            <section class="login-card" aria-labelledby="login-form-title">
+              <div class="login-card-head">
+                <h2 class="login-card-title" id="login-form-title">Bienvenido</h2>
+                <p class="small muted">Entra con el usuario que te dio el líder de alabanza.</p>
+              </div>
+              <form class="login-form" id="login-form" autocomplete="on" novalidate>
+                <div class="field">
+                  <label class="field-label" for="lg-user">Usuario</label>
+                  <div class="login-input">${I('users', 16)}<input class="input" id="lg-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="tu usuario"></div>
                 </div>
-              </div>
-              <p class="login-error" id="lg-error" role="alert" hidden></p>
-              <button class="btn btn--primary login-btn" type="submit"><span class="lbl">Entrar</span> ${I('arrow-right', 16)}</button>
-            </form>
-            <p class="xsmall faint login-foot">${esc(App.config.appName)} · versión demo. ¿No tienes usuario? Pídeselo al líder de alabanza.</p>
-          </section>
+                <div class="field">
+                  <label class="field-label" for="lg-pass">Contraseña</label>
+                  <div class="pw login-input">${I('key', 16)}
+                    <input class="input" id="lg-pass" name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+                    <button class="pw-toggle" type="button" data-act="toggle" aria-controls="lg-pass">Mostrar</button>
+                  </div>
+                </div>
+                <p class="login-error" id="lg-error" role="alert" hidden></p>
+                <button class="btn btn--primary login-btn" type="submit"><span class="lbl">Entrar</span> ${I('arrow-right', 16)}</button>
+              </form>
+              <p class="xsmall faint login-foot">¿No tienes usuario? Pídeselo al líder de alabanza.<br>${esc(App.config.appName)} · ${esc(s.ministryName)} ${esc(s.churchName)}</p>
+            </section>
+          </div>
         </main>`;
 
       const form = root.querySelector('#login-form');

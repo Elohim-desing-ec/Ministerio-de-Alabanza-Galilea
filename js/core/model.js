@@ -189,6 +189,101 @@
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   };
 
+  // ---- Links para escuchar ----
+  /** Links de una canción: los del repertorio y los que el equipo compartió en eventos. */
+  M.songLinks = (songId) => {
+    const s = M.song(songId);
+    const out = ((s && s.links) || []).map((l) => Object.assign({ source: 'song' }, l, { songId }));
+    const seen = new Set(out.map((l) => l.url));
+    M.sortEvents(S().events, -1).forEach((e) => (e.links || []).forEach((l) => {
+      if (l.songId === songId && !seen.has(l.url)) { seen.add(l.url); out.push(Object.assign({ source: 'event', eventId: e.id }, l)); }
+    }));
+    return out;
+  };
+
+  /** Links compartidos en un evento (con los del repertorio de cada canción del setlist). */
+  M.eventLinks = (ev) => (ev.links || []).map((l) => Object.assign({ source: 'event', eventId: ev.id }, l));
+
+  /** Lo más reciente que compartió el equipo. */
+  M.recentLinks = (limit = 12) => {
+    const out = [];
+    S().events.forEach((e) => (e.links || []).forEach((l) => out.push(Object.assign({ source: 'event', eventId: e.id }, l))));
+    return out.sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, limit);
+  };
+
+  // ---- Rachas: servicios cumplidos hasta el final ----
+  // Al terminar el culto, el líder verifica quién cumplió (ev.verified.done)
+  // y quién no (ev.verified.missed). Cada servicio cumplido suma 1 a la racha;
+  // uno no cumplido la reinicia. Quien avisó antes que no podía no la pierde.
+  M.LEVELS = [
+    { n: 1, name: 'Primer servicio', icon: '🌱' },
+    { n: 3, name: 'Encendido', icon: '🔥' },
+    { n: 5, name: 'Constante', icon: '⭐' },
+    { n: 10, name: 'Fiel', icon: '🏅' },
+    { n: 20, name: 'Columna del equipo', icon: '🏆' },
+    { n: 40, name: 'Leyenda', icon: '👑' }
+  ];
+
+  M.isVerified = (ev) => !!(ev && ev.verified && ev.verified.at);
+
+  /** ¿Ya empezó (o pasó) el culto, para poder verificarlo? */
+  M.canVerify = (ev) => {
+    if (!ev || !ev.assignments.some((a) => a.memberId && a.status !== 'declined')) return false;
+    const today = U.today();
+    if (ev.date < today) return true;
+    if (ev.date > today) return false;
+    const now = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    return hhmm >= (ev.time || '00:00');
+  };
+
+  /** Personas que servían en el evento (una vez cada una), sin quienes avisaron que no podían. */
+  M.eventServers = (ev) => {
+    const seen = new Set();
+    const out = [];
+    ev.assignments.forEach((a) => {
+      if (!a.memberId || a.status === 'declined' || seen.has(a.memberId)) return;
+      const m = M.member(a.memberId);
+      if (!m) return;
+      seen.add(a.memberId);
+      out.push({ member: m, positions: ev.assignments.filter((x) => x.memberId === a.memberId && x.status !== 'declined').map((x) => x.position), status: a.status });
+    });
+    return out;
+  };
+
+  M.verifiedEvents = () => M.sortEvents(S().events.filter(M.isVerified));
+
+  /** Racha de una persona: actual, mejor, total cumplidos, no cumplidos e historial. */
+  M.streak = (memberId) => {
+    let current = 0, best = 0, total = 0, missed = 0, last = null;
+    const history = [];
+    M.verifiedEvents().forEach((ev) => {
+      const v = ev.verified;
+      if ((v.done || []).includes(memberId)) {
+        current++; total++; best = Math.max(best, current); last = ev;
+        history.push({ event: ev, done: true, streak: current });
+      } else if ((v.missed || []).includes(memberId)) {
+        current = 0; missed++;
+        history.push({ event: ev, done: false, streak: 0 });
+      }
+    });
+    const level = M.LEVELS.filter((l) => l.n <= best).pop() || null;
+    const next = M.LEVELS.find((l) => l.n > current) || null;
+    return { current, best, total, missed, last, level, next, history: history.reverse() };
+  };
+
+  /** Tabla de rachas del equipo. */
+  M.leaderboard = () => S().members
+    .map((m) => ({ member: m, s: M.streak(m.id) }))
+    .filter((x) => x.s.total > 0 || x.s.missed > 0)
+    .sort((a, b) => (b.s.current - a.s.current) || (b.s.best - a.s.best) || (b.s.total - a.s.total) || a.member.name.localeCompare(b.member.name));
+
+  /** Cultos que ya pasaron y nadie verificó todavía. */
+  M.toVerify = (days = 45) => {
+    const since = U.ymd(U.addDays(new Date(), -days));
+    return M.sortEvents(S().events.filter((e) => e.date >= since && !M.isVerified(e) && M.canVerify(e)), -1);
+  };
+
   // ---- Pendientes para líderes ----
   M.attention = (days = 21) => {
     const out = [];

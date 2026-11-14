@@ -144,6 +144,7 @@
         <p class="small muted">${U.plural(ev.setlist.length, 'canción', 'canciones')} · ${U.fmtMinutes(total)} aprox.</p>
         <div class="row">
           ${ev.setlist.length ? `<button class="btn btn--ghost btn--sm" data-act="stage">${I('stage', 14)} Modo escenario</button>` : ''}
+          ${ev.setlist.length ? `<button class="btn btn--ghost btn--sm" data-act="practice">${I('metronome', 14)} Ensayar con pistas</button>` : ''}
           <button class="btn btn--soft btn--sm" data-act="ai-setlist">${I('sparkle', 14)} Sugerir con IA</button>
           ${leader ? `<button class="btn btn--primary btn--sm" data-act="add-song">${I('plus', 14)} Agregar canción</button>` : ''}
         </div>
@@ -162,7 +163,7 @@
           ${leader ? `<span class="sl-grip" title="Arrastra para reordenar">${I('grip', 16)}</span>` : ''}
           <span class="sl-num mono">${i + 1}</span>
           <div class="sl-main">
-            <button class="sl-title" data-open="${esc(s.id)}" data-key="${esc(it.key)}">${esc(s.title)}</button>
+            <span class="sl-title-row"><button class="sl-title" data-open="${esc(s.id)}" data-key="${esc(it.key)}">${esc(s.title)}</button>${songLinksFor(ev, s.id).length ? `<button class="sl-listen" data-listen-song="${esc(s.id)}" aria-label="Escuchar ${esc(s.title)}" title="Escuchar">${I('headphones', 13)}</button>` : ''}</span>
             <span class="xsmall faint">${M.bpm(s)} · ${esc(M.tempoLabel(s.tempo))} · ${U.fmtDuration(s.duration)}${diff ? ` · ${diff > 0 ? '+' : ''}${diff} del original (${esc(App.chords.formatKey(s.key, notation))})` : ''}</span>
           </div>
           <div class="sl-key">
@@ -178,6 +179,77 @@
           </div>` : ''}
         </li>`;
     }).join('')}</ol>`;
+  }
+
+  /** Links de una canción en este evento: primero los compartidos aquí, luego los del repertorio. */
+  function songLinksFor(ev, songId) {
+    const shared = M.eventLinks(ev).filter((l) => l.songId === songId);
+    const song = M.song(songId);
+    const repo = ((song && song.links) || []).map((l) => Object.assign({ source: 'song' }, l, { songId })).filter((l) => !shared.some((x) => x.url === l.url));
+    return shared.concat(repo);
+  }
+
+  let queues = [];
+
+  function listenTab(ev, leader) {
+    const me = M.me();
+    queues = [];
+    const add = (links) => { queues.push(links); return queues.length - 1; };
+    const inSet = new Set(ev.setlist.map((it) => it.songId));
+    const others = M.eventLinks(ev).filter((l) => !l.songId || !inSet.has(l.songId));
+    const firsts = ev.setlist.map((it) => songLinksFor(ev, it.songId)[0]).filter(Boolean).concat(others);
+    const allIdx = firsts.length ? add(firsts) : -1;
+    const canRemove = (l) => l.source === 'event' && (leader || l.memberId === me.id);
+
+    const head = `
+      <div class="listen-head">
+        <div class="stack-sm">
+          <span class="strong">Escucha las alabanzas de este evento</span>
+          <span class="small muted">Cada persona puede enviar el link de la versión que se va a tocar. Se escucha aquí mismo.</span>
+        </div>
+        <div class="row">
+          ${allIdx >= 0 ? `<button class="btn btn--primary btn--sm" data-qall="${allIdx}">${I('play', 13)} Escuchar todo</button>` : ''}
+          <button class="btn btn--soft btn--sm" data-act="share-link">${I('link', 13)} Enviar link</button>
+        </div>
+      </div>`;
+
+    const songBlocks = ev.setlist.map((it, n) => {
+      const s = M.song(it.songId);
+      if (!s) return '';
+      const links = songLinksFor(ev, s.id);
+      const qi = links.length ? add(links) : -1;
+      return `
+        <section class="listen-song">
+          <header class="listen-song-head">
+            <span class="sl-num mono">${n + 1}</span>
+            <div class="grow stack-sm"><span class="strong">${esc(s.title)}</span><span class="xsmall faint">${esc(s.artist || '')}</span></div>
+            ${ui.keyBadge(it.key)}
+            <button class="btn btn--ghost btn--sm" data-act="share-link" data-song="${esc(s.id)}">${I('plus', 13)} Link</button>
+          </header>
+          ${links.length ? `<div class="listen-links">${links.map((l, k) => ui.linkRow(l, { i: `${qi}:${k}`, canRemove: canRemove(l) })).join('')}</div>`
+            : '<p class="xsmall faint listen-none">Nadie ha enviado un link de esta canción todavía.</p>'}
+        </section>`;
+    }).join('');
+
+    const otherIdx = others.length ? add(others) : -1;
+    const otherBlock = others.length ? `
+      <section class="listen-song">
+        <header class="listen-song-head"><span class="sl-num">${I('link', 14)}</span><div class="grow"><span class="strong">Otros links</span></div></header>
+        <div class="listen-links">${others.map((l, k) => ui.linkRow(l, { i: `${otherIdx}:${k}`, canRemove: canRemove(l) })).join('')}</div>
+      </section>` : '';
+
+    if (!ev.setlist.length && !others.length) {
+      return head + ui.empty({ icon: 'headphones', title: 'Aún no hay links', text: 'Cuando el setlist esté listo, cada persona puede enviar el link de YouTube, Spotify o Drive de cada alabanza.' });
+    }
+    return head + `<div class="listen-list card">${songBlocks}${otherBlock}</div>`;
+  }
+
+  /** Después de verificar el culto: "Cumplió" o "No cumplió" en vez del estado. */
+  function verifiedPill(ev, m) {
+    if (!m || !M.isVerified(ev)) return '';
+    if ((ev.verified.done || []).includes(m.id)) return `<span class="pill pill--done">${I('check', 12)} Cumplió</span>`;
+    if ((ev.verified.missed || []).includes(m.id)) return '<span class="pill pill--missed">No cumplió</span>';
+    return '';
   }
 
   function teamTab(ev, leader) {
@@ -229,7 +301,7 @@
                   ${m && m.roles.length > 1 && (leader || isMe) ? `<label class="swap"><span class="xsmall faint">Ese día toca</span><select class="select select--sm" data-swap="${esc(a.slot)}">${m.roles.map((r) => `<option value="${r}" ${r === a.position ? 'selected' : ''}>${esc(M.posLabel(r))}</option>`).join('')}</select></label>` : ''}
                   ${conflicts.map((c) => `<span class="${c.hard ? 'bad-text' : 'warn-text'}">${I('alert', 12)} ${esc(c.label)}</span>`).join('')}
                 </div>
-                <div class="slot-status">${ui.status(status)}</div>
+                <div class="slot-status">${verifiedPill(ev, m) || ui.status(status)}</div>
                 <div class="slot-actions">
                   ${isMe && a.status !== 'confirmed' ? `<button class="btn btn--ok btn--sm" data-act="confirm" data-slot="${esc(a.slot)}">${I('check', 14)} Confirmar</button>` : ''}
                   ${isMe && a.status !== 'declined' ? `<button class="btn btn--ghost btn--sm" data-act="decline" data-slot="${esc(a.slot)}">No puedo</button>` : ''}
@@ -289,6 +361,7 @@
       const tabs = [
         ['setlist', 'Setlist', 'music', ev.setlist.length],
         ['equipo', 'Equipo', 'users', ev.assignments.filter((a) => a.memberId).length + '/' + ev.assignments.length],
+        ['escuchar', 'Escuchar', 'headphones', (ev.links || []).length],
         ['chat', 'Chat', 'chat', chatCount],
         ['detalles', 'Detalles', 'list', null]
       ];
@@ -310,6 +383,8 @@
 
           ${ev.notes ? `<div class="notice">${I('bell', 16)}<span style="white-space:pre-wrap">${esc(ev.notes)}</span></div>` : ''}
 
+          ${App.streak.eventBanner(ev)}
+
           <div class="tabs" role="tablist">
             ${tabs.map(([key, label, icon, count]) => `<button role="tab" aria-selected="${vs.tab === key}" class="${vs.tab === key ? 'is-on' : ''}" data-tab="${key}">${I(icon, 15)} ${label}${count !== null && count !== 0 ? ` <span class="tag">${count}</span>` : ''}</button>`).join('')}
           </div>
@@ -317,17 +392,28 @@
           <div class="tab-body" id="tab-body">
             ${vs.tab === 'setlist' ? setlistTab(ev, leader) : ''}
             ${vs.tab === 'equipo' ? teamTab(ev, leader) : ''}
+            ${vs.tab === 'escuchar' ? listenTab(ev, leader) : ''}
             ${vs.tab === 'chat' ? '<div id="event-chat"></div>' : ''}
             ${vs.tab === 'detalles' ? detailsTab(ev, leader) : ''}
           </div>
         </div>`;
 
       if (vs.tab === 'chat') App.chatPanel(root.querySelector('#event-chat'), ev.id, { compact: true });
+      if (vs.tab === 'escuchar') ui.hydrateLinkTitles(root);
 
       // ---- Clicks ----
       root.addEventListener('click', async (e) => {
         const tab = e.target.closest('[data-tab]');
         if (tab) { vs.tab = tab.dataset.tab; App.app.refresh(); return; }
+
+        const qall = e.target.closest('[data-qall]');
+        if (qall) { ui.playLinks(queues[Number(qall.dataset.qall)] || []); return; }
+        const pl = e.target.closest('[data-play]');
+        if (pl) { const [qi, k] = pl.dataset.play.split(':').map(Number); ui.playLinks(queues[qi] || [], k || 0); return; }
+        const ls = e.target.closest('[data-listen-song]');
+        if (ls) { ui.playLinks(songLinksFor(ev, ls.dataset.listenSong)); return; }
+        const rml = e.target.closest('[data-remove-link]');
+        if (rml) { A.removeEventLink(ev.id, rml.dataset.removeLink); ui.toast('Link quitado.'); return; }
 
         const open = e.target.closest('[data-open]');
         if (open) { App.viewState.song.keys[open.dataset.open] = open.dataset.key; App.router.go('cancion', open.dataset.open); return; }
@@ -340,6 +426,8 @@
           case 'add-song': App.forms.songPicker(ev.id); break;
           case 'ai-setlist': App.ai.askAbout(`Sugiere un setlist para "${ev.title}" del ${U.fmtDate(ev.date, 'long')}. ${ev.notes ? 'Notas: ' + ev.notes : ''}`.trim(), ev.id); break;
           case 'stage': App.stage.openEvent(ev.id); break;
+          case 'practice': App.stage.openEvent(ev.id, 0, { practice: true }); break;
+          case 'share-link': App.forms.shareLink(ev.id, btn.dataset.song || null); break;
           case 'up': A.moveSong(ev.id, idx, idx - 1); break;
           case 'down': A.moveSong(ev.id, idx, idx + 1); break;
           case 'remove-song': A.removeSong(ev.id, idx); ui.toast('Canción quitada del setlist.'); break;

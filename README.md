@@ -22,11 +22,15 @@ Está hecha con HTML, CSS y JavaScript puros. No hay que instalar ni compilar na
 | --- | --- |
 | **Inicio** | Tus servicios con botón Confirmar / No puedo, la semana, el estado de los próximos eventos y lo que necesita atención (para líderes). |
 | **Agenda** | Calendario mensual y lista, filtro por equipo, y el modo *Mis fechas no disponibles* para que cada persona bloquee días. |
-| **Evento** | Setlist (ordenar arrastrando, tono por canción, quién dirige), equipo por puesto con avisos de conflictos, *Completar por rotación*, chat del evento, notas y modo escenario. |
+| **Evento** | Setlist (ordenar arrastrando, tono por canción, quién dirige), equipo por puesto con avisos de conflictos, *Completar por rotación*, pestaña **Escuchar** (cada persona envía el link de cada alabanza y se escucha ahí mismo), chat del evento, notas y modo escenario. |
+| **Modo escenario + ensayo** | Letra grande canción por canción. Abajo: metrónomo con BPM (−/+ y *Tap*), compás, pulsos que se iluminan y cuenta inicial. **Pistas**: batería, bajo, piano, guitarra, pad y click generados con los acordes de la hoja, cada una con volumen, silenciar (M) y dejar sola (S), y atajos como *Solo batería* o *Sin batería*. **Instrumentos**: el acorde que suena se ilumina en la letra y se ve qué teclas toca el piano, la posición de guitarra y su rasgueo, la nota del bajo y el ritmo de la batería. Teclas: espacio = pistas, S = auto-scroll, ← → = canción. |
+| **Intro y entrada** | Al abrir: logo animado y el nombre del ministerio (se salta con un toque). Luego la pantalla de entrada: dos columnas en computadora, una en el celular. |
+| **Escuchar** | Grabaciones del repertorio y links que comparte el equipo (YouTube, YouTube Music, Spotify, SoundCloud, Deezer, Apple Music, Google Drive, Dropbox o archivos MP3). Suenan dentro de la app en un reproductor flotante que sigue sonando aunque cambies de pantalla. *Escuchar el setlist* los pone en fila. |
 | **Canciones** | Repertorio con búsqueda y filtros. **Importar PDF**: sube los PDF de LaCuerda.net (o pega el texto) y la app lee título, artista, tono, secciones, letra y acordes. Si la página trae varias versiones, eliges cuál guardar. |
 | **Canción** | Transponer, capo, notación C D E / Do Re Mi / números, solo letra para cantantes, dos columnas, arreglo editable, auto-scroll y editor con vista previa. Convierte canciones pegadas con los acordes encima de la letra. |
+| **Rachas** | Al terminar un culto, el líder lo verifica en el evento: marca quién cumplió hasta el final. Cada servicio cumplido suma 1 a la racha de esa persona; uno no cumplido la reinicia (avisar antes que no puede no la rompe). Hay niveles con insignias (1, 3, 5, 10, 20 y 40 seguidos), la tarjeta *Tu racha* en Inicio y la tabla *Rachas del equipo*. |
 | **Equipo** | Personas, puestos, sub-equipos, cobertura por instrumento, fechas no disponibles e historial. |
-| **Chat** | Canal general, de líderes y uno por evento. |
+| **Chat** | Canal general, de líderes y uno por evento. Vista previa del último mensaje y contador de no leídos, links de música que se escuchan dentro, reacciones con emoji, copiar y borrar. |
 | **Asistente** | Arma setlists, completa el equipo, transpone, revisa disponibilidad, crea eventos y sugiere palabras de transición. Todo cambio se aplica con un botón. |
 | **Ajustes** | Nombre de la iglesia, tema claro/oscuro, notación, IA, respaldo y restablecer demo. |
 
@@ -82,6 +86,8 @@ js/
     utils.js            fechas, texto
     store.js            estado y copia local (App.storage)
     cloud.js            base de datos compartida (Supabase) y cambios en vivo
+    media.js            links de música (YouTube, Spotify, SoundCloud…)
+    practice.js         metrónomo y pistas de ensayo (Web Audio)
     auth.js             inicio de sesión
     importer.js         lectura de canciones (LaCuerda.net y similares)
     model.js            consultas (conflictos, carga de servicio…)
@@ -89,7 +95,7 @@ js/
     chords.js           motor de acordes
     rotation.js         rotación justa del equipo
   data/seed.js          datos de demostración
-  ui/                   íconos, componentes, modo escenario, importar PDF, app instalable
+  ui/                   íconos, componentes, intro, reproductor, modo escenario, importar PDF, app instalable
 sw.js                   funcionamiento sin internet
 manifest.webmanifest    datos de la app instalable
   ai/assistant.js       núcleo del asistente
@@ -105,6 +111,10 @@ manifest.webmanifest    datos de la app instalable
 - **Cambiar los puestos que trae cada tipo de evento:** `eventTypes` en `js/config.js`.
 - **Agregar una pantalla:** crea `js/views/mi-pantalla.js` con `App.views.mipantalla = { title, render(root, param) }`, su CSS en `css/views/`, y enlázala en `index.html` y en `NAV` de `js/app.js`.
 - **Agregar otro proveedor de IA:** crea un archivo en `js/ai/providers/` que llame a `App.ai.register({ id, label, available, ask })`.
+
+### Sobre las pistas de ensayo
+
+Las pistas no se descargan ni se guardan: el navegador las genera en el momento a partir de los acordes, el tono y el BPM de la canción, así no ocupan espacio en la base de datos. Separar una grabación real en pistas (como hace Moises) necesita un servicio de inteligencia artificial en un servidor; queda como paso futuro.
 
 ### Próximos pasos posibles
 

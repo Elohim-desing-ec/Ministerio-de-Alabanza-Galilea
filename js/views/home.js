@@ -165,6 +165,8 @@
 
           ${leader ? onboarding() : ''}
 
+          ${App.streak.card(me)}
+
           <section class="section">
             <div class="section-head">
               <h2 class="section-title">Tus próximos servicios</h2>
@@ -185,11 +187,15 @@
               ${upcomingList()}
             </section>
             <div class="stack">
+              ${leader ? App.streak.pendingPanel() : ''}
               ${leader ? attentionPanel() : ''}
+              ${App.streak.board(5)}
               ${topSongs()}
             </div>
           </div>
         </div>`;
+
+      App.streak.afterCard(root, me);
 
       root.addEventListener('change', (e) => {
         const sel = e.target.closest('[data-swap]');
@@ -230,6 +236,8 @@
           }
           return;
         }
+        const rank = e.target.closest('.st-rank-row[data-member]');
+        if (rank) { App.router.go('equipo', rank.dataset.member); return; }
         const go = e.target.closest('[data-go]');
         if (go) { const [name, ...rest] = go.dataset.go.split('-'); App.router.go(name, rest.join('-')); }
       });

@@ -130,6 +130,7 @@
       const arrangement = (s.arrangement && s.arrangement.length) ? s.arrangement : sections;
       const used = M.songEvents(s.id).slice(0, 5);
       const upcoming = M.upcoming({ days: 60 });
+      const links = M.songLinks(s.id);
 
       root.innerHTML = `
         <div class="view view--song">
@@ -148,6 +149,7 @@
             </div>
             <div class="view-actions">
               <button class="btn btn--ghost" data-act="stage">${I('stage', 16)} Escenario</button>
+              <button class="btn btn--ghost" data-act="practice">${I('metronome', 16)} Ensayar</button>
               ${upcoming.length && leader ? `<button class="btn btn--ghost" data-act="add-to-event">${I('plus', 16)} A un evento</button>` : ''}
               ${leader ? `<button class="btn btn--primary" data-act="edit">${I('edit', 16)} Editar</button>` : ''}
             </div>
@@ -197,6 +199,12 @@
             </article>
 
             <aside class="stack song-side">
+              <section class="panel">
+                <div class="row-between"><h2 class="panel-title">${I('headphones', 16)} Escuchar</h2>${links.length > 1 ? `<button class="btn btn--soft btn--sm" data-play="0:0">${I('play', 12)} Todo</button>` : ''}</div>
+                ${links.length ? `<div class="listen-links listen-links--side">${links.map((l, k) => ui.linkRow(l, { i: `0:${k}`, canRemove: leader && l.source === 'song', removeKey: l.id })).join('')}</div>`
+                  : `<p class="small muted">${leader ? 'Agrega el link de YouTube, Spotify o Drive de la versión que van a tocar.' : 'Todavía no hay grabación de esta canción.'}</p>`}
+                ${leader ? `<button class="btn btn--ghost btn--sm" data-act="add-link">${I('plus', 13)} Agregar grabación</button>` : ''}
+              </section>
               ${s.notes ? `<section class="panel"><h2 class="panel-title">${I('bell', 16)} Notas</h2><p class="small" style="white-space:pre-wrap">${esc(s.notes)}</p></section>` : ''}
               <section class="panel">
                 <h2 class="panel-title">${I('calendar', 16)} Usada en</h2>
@@ -225,9 +233,15 @@
           App.actions.saveSong(Object.assign(U.clone(s), { arrangement: arr }));
           return;
         }
+        const pl = e.target.closest('[data-play]');
+        if (pl) { ui.playLinks(links, Number(pl.dataset.play.split(':')[1]) || 0); return; }
+        const rml = e.target.closest('[data-remove-link]');
+        if (rml) { App.actions.removeSongLink(s.id, rml.dataset.removeLink); ui.toast('Grabación quitada.'); return; }
         const b = e.target.closest('[data-act]');
         if (!b) return;
         switch (b.dataset.act) {
+          case 'add-link': App.forms.songLink(s.id); break;
+          case 'practice': stopScroll(); App.stage.openSong(s.id, target, { practice: true }); break;
           case 'up': setKey(C.transposeKey(target, 1)); break;
           case 'down': setKey(C.transposeKey(target, -1)); break;
           case 'reset': setKey(s.key); break;
@@ -254,6 +268,8 @@
           App.actions.saveSong(Object.assign(U.clone(s), { arrangement: arrangement.concat(e.target.value) }));
         }
       });
+
+      ui.hydrateLinkTitles(root);
 
       // Resaltar la sección al pasar por el chip del arreglo
       const chart = root.querySelector('#song-chart');
