@@ -1,0 +1,45 @@
+/* =========================================================================
+   SELAH · Animaciones
+   Todo movimiento se apaga con prefers-reduced-motion.
+   ========================================================================= */
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scale-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes sheet-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes typing { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 var(--accent-soft); } 100% { box-shadow: 0 0 0 10px transparent; } }
+
+/* Entrada de vista: arranca visible y solo se desliza un poco */
+.view-enter > .view > * { animation: fade-up var(--dur-3) var(--ease-out) both; }
+.view-enter > .view > *:nth-child(2) { animation-delay: 40ms; }
+.view-enter > .view > *:nth-child(3) { animation-delay: 80ms; }
+.view-enter > .view > *:nth-child(4) { animation-delay: 120ms; }
+.view-enter > .view > *:nth-child(n+5) { animation-delay: 160ms; }
+
+.overlay .scrim { animation: fade-in var(--dur-2) var(--ease) both; }
+.overlay--dialog .modal { animation: scale-in var(--dur-3) var(--ease-out) both; }
+.overlay--sheet .modal { animation: sheet-in var(--dur-3) var(--ease-out) both; }
+.overlay.is-closing { opacity: 0; transition: opacity var(--dur-2) var(--ease); }
+
+@media (max-width: 640px) {
+  .overlay--dialog .modal, .overlay--sheet .modal { animation: sheet-up var(--dur-3) var(--ease-out) both; }
+}
+
+.toast { animation: toast-in var(--dur-2) var(--ease-out) both; }
+.toast.is-leaving { opacity: 0; transform: translateY(6px); transition: opacity var(--dur-2), transform var(--dur-2); }
+
+.is-popped { animation: pop 360ms var(--ease-out); }
+.msg-in { animation: fade-up var(--dur-2) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

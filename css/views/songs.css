@@ -1,0 +1,98 @@
+/* SELAH · Canciones y hoja de acordes */
+
+.songs-filters { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+.songs-filters .search { flex: 1 1 260px; }
+.songs-sort { width: auto; }
+
+.song-table { overflow: hidden; }
+.song-tr {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) 70px 120px minmax(0, 1.6fr) 130px;
+  align-items: center; gap: var(--sp-3);
+  padding: 12px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  transition: background var(--dur-1);
+}
+.song-tr:last-child { border-bottom: 0; }
+a.song-tr:hover { background: var(--surface-2); text-decoration: none; }
+.song-th { background: var(--surface-2); font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; padding-block: 9px; }
+.song-name { display: flex; flex-direction: column; min-width: 0; }
+.song-name .strong { font-family: var(--font-display); font-size: 15.5px; }
+.song-tags { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
+
+@media (max-width: 760px) {
+  .song-th { display: none; }
+  .song-tr { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name key" "meta meta"; row-gap: 6px; }
+  .song-tr > :nth-child(1) { grid-area: name; }
+  .song-tr > :nth-child(2) { grid-area: key; }
+  .song-tr > :nth-child(3) { grid-area: meta; }
+  .song-tr > :nth-child(4), .song-tr > :nth-child(5) { display: none; }
+}
+
+/* ---- Canción ---- */
+.song-meta { display: flex; flex-wrap: wrap; gap: var(--sp-5); margin-top: var(--sp-2); }
+.meta-item { display: flex; flex-direction: column; gap: 4px; }
+
+.chart-toolbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-5);
+  padding: 10px var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+.tb-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tb-label { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+.tb-key { width: 76px; color: var(--chord); font-weight: 700; }
+
+.song-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--sp-6); align-items: start; }
+.sheet {
+  display: flex; flex-direction: column; gap: var(--sp-5);
+  padding: var(--sp-6) var(--sp-8);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  min-width: 0;
+}
+.arr-strip { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding-bottom: var(--sp-4); border-bottom: 1px dashed var(--line-strong); }
+.arr-chips { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.arr-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 9px;
+  border-radius: var(--r-sm);
+  background: var(--solid); color: var(--solid-ink);
+  font-size: 12px; font-weight: 600;
+  cursor: default;
+}
+.arr-x { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: var(--solid-ink); opacity: .6; }
+.arr-x:hover { opacity: 1; background: rgb(255 255 255 / .15); }
+.arr-sep { color: var(--ink-3); font-size: 12px; }
+.arr-add { width: auto; }
+
+.used-row { display: flex; align-items: center; gap: var(--sp-3); padding: 8px; margin: 0 -8px; border-radius: var(--r-md); color: var(--ink); }
+.used-row:hover { background: var(--surface-2); text-decoration: none; }
+
+@media (max-width: 1000px) {
+  .song-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .chart-toolbar { position: static; gap: var(--sp-2) var(--sp-3); padding: 10px var(--sp-3); }
+  .sheet { padding: var(--sp-5) var(--sp-4); }
+}
+
+/* ---- Editor ---- */
+.song-editor { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-5); min-height: 100%; }
+.se-meta { display: flex; flex-direction: column; gap: var(--sp-3); }
+.se-chart, .se-preview { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.se-chart .textarea { flex: 1; }
+.se-preview-chart { padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); overflow: auto; flex: 1; max-height: 70vh; --chart-size: 15px; }
+
+@media (max-width: 1100px) {
+  .song-editor { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .se-meta { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .song-editor { grid-template-columns: minmax(0, 1fr); }
+}

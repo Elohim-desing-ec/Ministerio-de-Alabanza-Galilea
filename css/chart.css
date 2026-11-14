@@ -1,0 +1,52 @@
+/* =========================================================================
+   SELAH · Hoja de acordes (atril)
+   Cada sílaba con acorde es un bloque: acorde arriba, letra abajo.
+   ========================================================================= */
+
+.chart {
+  --chart-size: 17px;
+  font-size: var(--chart-size);
+  line-height: 1.35;
+  color: var(--ink);
+  display: flex; flex-direction: column; gap: 1.4em;
+  min-width: 0;
+}
+.chart--cols { display: block; columns: 2 320px; column-gap: 3em; }
+.chart--cols .chart-sec { break-inside: avoid; margin-bottom: 1.4em; }
+
+.chart-sec { display: flex; flex-direction: column; gap: .35em; }
+.chart-sec-name {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-body);
+  font-size: .68em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: .2em;
+}
+.chart-sec-name .rep { font-family: var(--font-mono); letter-spacing: 0; color: var(--ink-3); }
+
+.cl { display: flex; flex-wrap: wrap; align-items: flex-end; min-width: 0; }
+.cs { display: inline-flex; flex-direction: column; min-width: 0; }
+.cc {
+  min-height: 1.3em;
+  padding-right: .45em;
+  font-family: var(--font-mono);
+  font-size: .86em; font-weight: 700;
+  color: var(--chord);
+  white-space: nowrap;
+}
+.cy { white-space: pre-wrap; }
+.cl--chords { gap: .9em; }
+.cl--chords .cc { padding-right: 0; }
+.cl--text { white-space: pre-wrap; color: var(--ink-2); font-style: italic; }
+.cl--blank { height: .6em; }
+
+/* Solo letra (para cantantes) */
+.chart--lyrics .cc { display: none; }
+.chart--lyrics .cl--chords { display: none; }
+
+/* Sección resaltada al pasar el puntero en el arreglo */
+.chart-sec.is-hl .chart-sec-name { color: var(--accent-text); }
+
+@media (max-width: 640px) {
+  .chart { --chart-size: 15.5px; }
+}

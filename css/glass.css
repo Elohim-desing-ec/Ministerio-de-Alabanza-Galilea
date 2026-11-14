@@ -1,0 +1,127 @@
+/* =========================================================================
+   SELAH · Capa "Cristal"
+   Vidrio oscuro + grano + brillo vino en el borde inferior + íconos-orbe.
+   Se carga después de los componentes y pantallas: si quieres volver al
+   estilo plano, basta con quitar este archivo de index.html.
+   ========================================================================= */
+
+/* ---- Fondo con luz ambiental y grano ---- */
+body {
+  background:
+    radial-gradient(55% 45% at 88% -8%, var(--ambient-1), transparent 70%),
+    radial-gradient(45% 40% at -6% 108%, var(--ambient-2), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  opacity: var(--grain);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1, h2, h3, .view-title, .section-title, .panel-title, .modal-title { letter-spacing: -0.025em; font-weight: 650; }
+
+/* ---- Vidrio ---- */
+.card, .panel, .cal, .sheet, .chart-toolbar, .team-summary, .wk-day, .svc-card, .user-chip, .chip, .ai-chip, .ai-provider {
+  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom)), var(--glass-fill);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+.card, .panel, .cal, .sheet, .team-summary, .svc-card { box-shadow: var(--glass-shadow); }
+.chip.is-on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.modal {
+  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom)), var(--surface);
+  border-color: var(--glass-border);
+}
+
+/* Barra lateral, superior y pestañas: cromo translúcido */
+.sidebar, .topbar, .tabbar {
+  background: var(--chrome);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+@media (max-width: 900px) { body::before { background: var(--chrome); } }
+
+.nav-item.is-active { background: var(--nav-active); color: var(--ink); box-shadow: inset 2px 0 0 var(--accent-text); }
+
+/* ---- Brillo vino desde el borde inferior (como luz de escenario) ---- */
+.svc-card, .view--home .panel, .day-panel, .ai-shell, .login-card, .member-card:hover, .song-side .panel:first-child {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.svc-card::before, .view--home .panel::before, .day-panel::before, .ai-shell::before, .login-card::before, .member-card:hover::before {
+  content: "";
+  position: absolute;
+  left: -15%; right: -15%; bottom: -55%;
+  height: 95%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(50% 50% at 50% 100%, var(--glow-core), var(--glow-wide) 42%, transparent 74%);
+  filter: blur(4px);
+}
+.svc-card::after, .view--home .panel::after, .day-panel::after, .ai-shell::after, .login-card::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 45%, var(--edge-1) 82%, var(--edge-2));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.ai-shell::before { bottom: -75%; opacity: .7; }
+
+/* ---- Íconos-orbe ---- */
+.orb, .ch-icon:not(.ch-icon--event), .ai-action-icon, .leader-badge, .ms-orb {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 20%, rgb(255 255 255 / .26), rgb(255 255 255 / .05) 42%, transparent 68%),
+    linear-gradient(160deg, var(--orb-1), var(--orb-2));
+  border: 1px solid var(--orb-border);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / .2), inset 0 -8px 14px rgb(0 0 0 / .35), 0 10px 24px -10px rgb(0 0 0 / .7);
+  color: var(--orb-ink);
+}
+.brand-mark, .ai-avatar, .ai-welcome-mark, .login-mark, .ch-item.is-on .ch-icon:not(.ch-icon--event) {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 20%, rgb(255 255 255 / .34), rgb(255 255 255 / .06) 40%, transparent 66%),
+    linear-gradient(160deg, #B0193F, #3E000F);
+  border: 1px solid rgb(255 160 190 / .35);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / .3), inset 0 -8px 14px rgb(0 0 0 / .4), 0 10px 30px -8px var(--accent-glow);
+  color: #FFFFFF;
+}
+.ch-icon { width: 38px; height: 38px; }
+
+/* Fecha de servicio: bloque de vidrio */
+.svc-date {
+  background: linear-gradient(180deg, rgb(255 255 255 / .14), rgb(255 255 255 / .03)), var(--solid);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12);
+}
+.svc-card.is-pending .svc-date { background: linear-gradient(180deg, #B0193F, #5A0016); border-color: rgb(255 160 190 / .35); }
+.svc-card.is-pending { box-shadow: var(--glass-shadow); border-color: var(--glass-border); }
+.svc-role { background: rgb(255 255 255 / .04); border: 1px solid var(--glass-border); }
+
+/* ---- Botones ---- */
+.btn--primary {
+  background: linear-gradient(180deg, var(--accent-hi), var(--accent));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), 0 10px 26px -12px var(--accent-glow);
+}
+.btn--primary:hover:not(:disabled) { background: linear-gradient(180deg, var(--accent-hi), var(--accent-hi)); box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 12px 30px -10px var(--accent-glow); }
+.btn--ghost { background: var(--glass-fill); border-color: var(--glass-border); }
+.btn--soft { background: var(--accent-soft); border: 1px solid rgb(255 140 170 / .18); }
+
+/* Campos */
+.input, .select, .textarea { background-color: var(--surface); border-color: var(--line-strong); }
+
+/* Enlaces tipo "Ver más →" */
+.link-more { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); font-weight: 600; font-size: var(--fs-sm); }
+.link-more:hover { color: var(--accent-text); text-decoration: none; }

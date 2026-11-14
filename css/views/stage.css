@@ -1,0 +1,65 @@
+/* SELAH · Modo escenario (siempre negro, en ambos temas) */
+
+.stage {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; flex-direction: column;
+  background: var(--stage-bg);
+  color: var(--stage-ink);
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  animation: fade-in var(--dur-2) var(--ease) both;
+  color-scheme: dark;
+}
+
+.stage-top {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap;
+  padding: var(--sp-3) max(20px, env(safe-area-inset-right, 0px)) var(--sp-3) max(20px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--stage-line);
+  background: var(--stage-surface);
+}
+.stage-title { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; flex: 1 1 320px; }
+.stage-title h2 { font-size: 22px; color: var(--stage-ink); }
+.stage-title p { font-size: var(--fs-sm); color: var(--stage-muted); }
+.stage-count { padding: 4px 10px; border-radius: var(--r-pill); background: var(--stage-accent); color: var(--stage-ink); font-weight: 700; font-size: 12px; }
+.stage-key { font-size: 22px; font-weight: 700; color: var(--stage-chord); border: 1px solid var(--stage-line); border-radius: var(--r-md); padding: 4px 12px; }
+
+.stage-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.stage-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--r-md); background: var(--stage-bg); border: 1px solid var(--stage-line); }
+.stage-seg button { height: 30px; min-width: 36px; padding: 0 9px; border-radius: 7px; color: var(--stage-muted); font-weight: 700; font-size: 13px; }
+.stage-seg button.is-on { background: var(--stage-accent); color: var(--stage-ink); }
+.stage-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--stage-line);
+  color: var(--stage-ink); font-weight: 600; font-size: 13px;
+}
+.stage-btn:hover { background: var(--stage-line); }
+.stage-btn.is-off { color: var(--stage-muted); }
+.stage-btn.is-live { background: var(--stage-accent); border-color: var(--stage-accent); }
+
+.stage-body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--sp-8) max(24px, env(safe-area-inset-right, 0px)) var(--sp-10) max(24px, env(safe-area-inset-left, 0px)); }
+.stage-chart { max-width: 1100px; margin: 0 auto; color: var(--stage-ink); }
+.stage-chart .cc { color: var(--stage-chord); }
+.stage-chart .chart-sec-name { color: var(--stage-muted); }
+.stage-chart .cl--text { color: var(--stage-muted); }
+.stage-notes { max-width: 1100px; margin: var(--sp-8) auto 0; padding: var(--sp-4); border: 1px dashed var(--stage-line); border-radius: var(--r-md); color: var(--stage-muted); font-size: var(--fs-sm); }
+
+.stage-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: var(--sp-3) max(20px, env(safe-area-inset-right, 0px)) var(--sp-3) max(20px, env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--stage-line);
+  background: var(--stage-surface);
+}
+.stage-nav { display: inline-flex; align-items: center; gap: 4px; height: 48px; padding: 0 18px; border-radius: var(--r-md); background: var(--stage-line); color: var(--stage-ink); font-weight: 700; }
+.stage-nav:hover:not(:disabled) { background: var(--stage-accent); }
+.stage-nav:disabled { opacity: .35; }
+.stage-next { color: var(--stage-muted); font-size: var(--fs-sm); text-align: center; min-width: 0; }
+.stage-next strong { color: var(--stage-ink); }
+.stage-next .mono { color: var(--stage-chord); }
+
+@media (max-width: 640px) {
+  .stage-title h2 { font-size: 18px; }
+  .stage-key { font-size: 18px; }
+  .stage-nav { padding: 0 12px; height: 44px; }
+  .stage-next { font-size: 12px; }
+}

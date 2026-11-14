@@ -1,0 +1,49 @@
+/* SELAH · Equipo */
+
+.team-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--sp-6); align-items: start; }
+.team-filters { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+.team-filters .search { flex: 1 1 240px; }
+.team-sel { width: auto; }
+
+.member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--sp-3); }
+.member-card {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  padding: var(--sp-4);
+  text-align: left;
+  transition: border-color var(--dur-1), box-shadow var(--dur-2), transform var(--dur-2) var(--ease-out);
+}
+.member-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-2); transform: translateY(-2px); }
+.mc-top { display: flex; align-items: center; gap: var(--sp-3); }
+.mc-id { display: flex; flex-direction: column; min-width: 0; }
+.mc-id .strong { font-family: var(--font-display); font-size: 15.5px; }
+.leader-badge { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); flex-shrink: 0; }
+.mc-foot { display: flex; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; padding-top: var(--sp-2); border-top: 1px solid var(--line); }
+.mc-next { color: var(--ink-2); }
+
+.coverage { display: flex; flex-direction: column; gap: 2px; }
+.cov-row { display: grid; grid-template-columns: 118px minmax(0, 1fr) 24px; align-items: center; gap: var(--sp-2); padding: 5px 6px; margin: 0 -6px; border-radius: var(--r-sm); text-align: left; font-size: var(--fs-sm); }
+.cov-row:hover { background: var(--surface-2); }
+.cov-row.is-on { background: var(--accent-soft); }
+.cov-bar { height: 8px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.cov-bar span { display: block; height: 100%; border-radius: inherit; background: var(--ink); }
+.cov-bar span.is-low { background: var(--bad); }
+.cov-n { text-align: right; font-weight: 700; }
+
+/* Ficha */
+.ms-head { display: flex; align-items: center; gap: var(--sp-4); }
+.contact-row { display: flex; align-items: center; gap: var(--sp-3); padding: 8px 10px; border-radius: var(--r-md); background: var(--surface-2); min-width: 0; }
+.blocked-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.blocked-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 6px 0 10px; border-radius: var(--r-pill); background: var(--bad-soft); color: var(--bad); font-size: 12px; font-weight: 600; }
+.blocked-chip button { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: var(--bad); }
+.blocked-chip button:hover { background: var(--surface); }
+.hist-row { display: flex; align-items: center; gap: var(--sp-3); padding: 8px 10px; border-radius: var(--r-md); border: 1px solid var(--line); color: var(--ink); }
+.hist-row:hover { background: var(--surface-2); text-decoration: none; }
+
+@media (max-width: 1000px) {
+  .team-layout { grid-template-columns: minmax(0, 1fr); }
+  .team-layout > aside { order: -1; }
+}
+
+.acc-badge { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); color: var(--accent-text); border: 1px solid var(--glass-border); flex-shrink: 0; }
+.account-box { border: 1px solid var(--line-strong); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4) var(--sp-4); margin: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.account-box legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; }

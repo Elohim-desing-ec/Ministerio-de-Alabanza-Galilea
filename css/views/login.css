@@ -1,0 +1,43 @@
+/* SELAH · Inicio de sesión */
+
+body.is-locked .app { display: none; }
+
+.login {
+  min-height: 100%;
+  display: grid; place-items: center;
+  padding-block: max(32px, env(safe-area-inset-top, 0px)) max(32px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.login-card {
+  width: 100%; max-width: 420px;
+  display: flex; flex-direction: column; gap: var(--sp-5);
+  padding: var(--sp-8) var(--sp-8) var(--sp-10);
+  border-radius: 26px;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom)), var(--glass-fill);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: var(--glass-shadow);
+  animation: scale-in 520ms var(--ease-out) both;
+}
+.login-mark { width: 64px; height: 64px; display: grid; place-items: center; }
+.login-head { display: flex; flex-direction: column; gap: 6px; }
+.login-title { font-size: 38px; line-height: 1.02; }
+.login-form { display: flex; flex-direction: column; gap: var(--sp-4); }
+.login-form .input { height: 46px; }
+
+.pw { position: relative; display: flex; }
+.pw .input { padding-right: 84px; }
+.pw-toggle { position: absolute; right: 6px; top: 6px; height: 34px; padding: 0 10px; border-radius: var(--r-sm); font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
+.pw-toggle:hover { background: var(--surface-2); color: var(--ink); }
+
+.login-error { color: var(--bad); font-size: var(--fs-sm); font-weight: 600; }
+.login-btn { height: 48px; justify-content: center; font-size: var(--fs-md); }
+.login-foot { text-align: center; }
+
+@media (max-width: 480px) {
+  .login-card { padding: var(--sp-6) var(--sp-5) var(--sp-8); }
+  .login-title { font-size: 32px; }
+}

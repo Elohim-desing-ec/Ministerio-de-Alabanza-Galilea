@@ -1,0 +1,90 @@
+/* SELAH · Evento */
+
+.tab-body { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+
+/* Setlist */
+.setlist { list-style: none; display: flex; flex-direction: column; overflow: hidden; }
+.sl-row {
+  display: grid;
+  grid-template-columns: auto 28px minmax(0, 1fr) 92px 190px auto;
+  align-items: center; gap: var(--sp-3);
+  padding: 12px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  transition: background var(--dur-1), opacity var(--dur-1);
+}
+.sl-row:last-child { border-bottom: 0; }
+.sl-row:not(:has(.sl-grip)) { grid-template-columns: 28px minmax(0, 1fr) 92px 190px; }
+.sl-row.is-dragging { opacity: .45; }
+.sl-row.is-over { box-shadow: inset 0 2px 0 var(--accent-text); }
+.sl-grip { color: var(--ink-3); cursor: grab; display: grid; place-items: center; }
+.sl-num {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--solid); color: var(--solid-ink);
+  font-weight: 700; font-size: 12.5px;
+}
+.sl-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sl-title { font-family: var(--font-display); font-weight: 700; font-size: 16px; text-align: left; color: var(--ink); }
+.sl-title:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+.sl-key .select { color: var(--chord); font-weight: 700; }
+.sl-actions { display: flex; gap: 2px; }
+
+/* Equipo */
+.team-summary { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.ts-stats { display: flex; gap: var(--sp-5); flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-2); }
+.ts-stats strong { font-size: 18px; color: var(--ink); margin-right: 3px; }
+.add-slot { width: auto; }
+
+.slot-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.slot-group-name { display: flex; align-items: center; gap: 6px; }
+.slot-row {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) 110px auto;
+  align-items: center; gap: var(--sp-3);
+  padding: 10px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.slot-row:last-child { border-bottom: 0; }
+.slot-row.is-me { background: var(--accent-soft); }
+.slot-row.status-declined .slot-label { color: var(--bad); }
+.slot-label { font-weight: 600; font-size: var(--fs-sm); }
+.slot-member { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.slot-member .select { max-width: 340px; }
+.slot-actions { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
+
+.plan-row { align-items: center; }
+.plan-pos { display: inline-flex; align-items: center; gap: 6px; width: 180px; flex-shrink: 0; font-weight: 600; font-size: var(--fs-sm); }
+
+/* Detalles */
+.details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--sp-4); align-items: start; }
+.dl { display: grid; grid-template-columns: auto 1fr; gap: 8px var(--sp-4); margin: 0; }
+.dl dt { color: var(--ink-3); font-size: var(--fs-sm); }
+.dl dd { margin: 0; font-weight: 500; }
+
+@media (max-width: 900px) {
+  .sl-row, .sl-row:not(:has(.sl-grip)) {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    grid-template-areas: "num main actions" "num key lead";
+    row-gap: 8px;
+  }
+  .sl-grip { display: none; }
+  .sl-num { grid-area: num; align-self: start; }
+  .sl-main { grid-area: main; }
+  .sl-key { grid-area: key; }
+  .sl-lead { grid-area: lead; min-width: 0; }
+  .sl-actions { grid-area: actions; }
+
+  .slot-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label status" "member member" "actions actions"; row-gap: 8px; }
+  .slot-label { grid-area: label; }
+  .slot-status { grid-area: status; }
+  .slot-member { grid-area: member; }
+  .slot-member .select { max-width: none; }
+  .slot-actions { grid-area: actions; justify-content: flex-start; }
+  .slot-actions:empty { display: none; }
+  .plan-pos { width: 130px; }
+}
+
+/* Elegir instrumento del día (personas que tocan varios) */
+.swap { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.swap .select { width: auto; }
