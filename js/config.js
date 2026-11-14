@@ -7,14 +7,14 @@ App.config = {
   appName: 'Selah',
   appTagline: 'Planificación de alabanza',
   siteTitle: 'Alabanza Galilea',
-  version: '0.2 demo',
+  version: '0.3',
 
   // Valores iniciales (se pueden cambiar desde Ajustes)
   churchName: 'Galilea',
   ministryName: 'Ministerio de Alabanza',
 
   // Clave de guardado local. Cambiarla reinicia los datos de demo.
-  storageKey: 'selah-galilea-v1',
+  storageKey: 'selah-galilea-v2',
   aiStorageKey: 'selah-ai-v1',
 
   // Acceso de demostración. El líder principal entra con su usuario y

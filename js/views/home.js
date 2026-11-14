@@ -95,7 +95,38 @@
       </section>`;
   }
 
+  /** Guía para el líder mientras el ministerio se configura. */
+  function onboarding() {
+    const prefs = App.store.state.prefs;
+    const steps = [
+      { done: M.members().length > 1, title: 'Agrega a tu equipo', text: 'Cantantes, músicos y técnicos con sus instrumentos.', act: 'add-member', cta: 'Agregar persona' },
+      { done: M.members().some((m) => m.account), title: 'Crea sus usuarios', text: 'En Equipo, abre a cada persona y dale usuario y contraseña.', act: 'go-team', cta: 'Ir a Equipo' },
+      { done: M.songs().length > 0, title: 'Importa tus canciones', text: 'Sube los PDF de LaCuerda.net con letra y acordes.', act: 'import', cta: 'Importar PDF' },
+      { done: M.events().length > 0, title: 'Programa el primer servicio', text: 'Fecha, setlist y quién sirve.', act: 'new-event', cta: 'Nuevo evento' },
+      { done: App.pwa.isStandalone(), title: 'Instala la app en tu celular', text: 'Queda con su ícono, sin Play Store ni App Store.', act: 'install', cta: 'Instalar' }
+    ];
+    const done = steps.filter((s) => s.done).length;
+    if (done === steps.length || prefs.onboardingHidden) return '';
+    return `
+      <section class="onboard card">
+        <div class="row-between">
+          <div><span class="eyebrow">Primeros pasos</span><h2 class="section-title">Deja listo el ministerio</h2></div>
+          <div class="row"><span class="small muted mono">${done}/${steps.length}</span><button class="btn btn--plain btn--sm" data-act="hide-onboarding">Ocultar</button></div>
+        </div>
+        <div class="onboard-bar"><span style="width:${(done / steps.length) * 100}%"></span></div>
+        <ol class="onboard-list">${steps.map((s) => `
+          <li class="onboard-step ${s.done ? 'is-done' : ''}">
+            <span class="onboard-check">${s.done ? I('check', 14) : ''}</span>
+            <span class="grow"><span class="strong">${esc(s.title)}</span><span class="small muted" style="display:block">${esc(s.text)}</span></span>
+            ${s.done ? '' : `<button class="btn btn--ghost btn--sm" data-act="${s.act}">${esc(s.cta)}</button>`}
+          </li>`).join('')}</ol>
+      </section>`;
+  }
+
   function topSongs() {
+    if (!M.songs().length) {
+      return `<section class="panel"><h2 class="panel-title">${I('music', 18)} Repertorio</h2><p class="small muted">Aún no hay canciones. ${M.isLeader() ? 'Impórtalas desde los PDF de LaCuerda.net.' : 'El líder las agregará pronto.'}</p>${M.isLeader() ? `<div><button class="btn btn--soft btn--sm" data-act="import">${I('arrow-up', 14)} Importar PDF</button></div>` : ''}</section>`;
+    }
     const ranked = M.songs().map((s) => ({ s, n: M.songUseCount(s.id, 90) })).sort((a, b) => b.n - a.n).slice(0, 5);
     return `
       <section class="panel">
@@ -131,6 +162,8 @@
               ${leader ? `<button class="btn btn--primary" data-act="new-event">${I('plus', 16)} Nuevo evento</button>` : ''}
             </div>
           </header>
+
+          ${leader ? onboarding() : ''}
 
           <section class="section">
             <div class="section-head">
@@ -189,6 +222,11 @@
             case 'autofill':
               App.forms.autofill(ev);
               break;
+            case 'add-member': App.forms.member(); break;
+            case 'go-team': App.router.go('equipo'); break;
+            case 'import': App.importer.open(); break;
+            case 'install': App.pwa.install(); break;
+            case 'hide-onboarding': App.store.setPref('onboardingHidden', true); break;
           }
           return;
         }

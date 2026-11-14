@@ -5,16 +5,19 @@
   const U = App.utils, M = App.model, ui = App.ui, I = App.icon, esc = U.esc;
   const AI = App.ai;
 
-  const SUGGESTIONS = [
-    'Arma un setlist para la Noche de Jóvenes sobre la esperanza',
-    'Completa el equipo del próximo domingo por rotación',
-    '¿Quién puede tocar batería el domingo?',
-    '¿Quién no ha servido en el último mes?',
-    'Transpón «Gracia Sin Final» a E',
-    'Sugiere palabras de transición para el servicio del domingo',
-    'Crea un ensayo el jueves a las 7:30 pm',
-    '¿Cómo va el servicio del domingo?'
-  ];
+  const suggestions = () => {
+    const song = M.songs()[0];
+    return [
+      'Arma un setlist para el próximo domingo sobre la gracia',
+      'Completa el equipo del próximo servicio por rotación',
+      '¿Quién puede tocar batería el domingo?',
+      '¿Quién no ha servido en el último mes?',
+      song ? `Transpón «${song.title}» a ${App.chords.transposeKey(song.key, 2)}` : 'Crea un servicio el domingo a las 10 am',
+      'Sugiere palabras de transición para el próximo servicio',
+      'Crea un ensayo el jueves a las 7:30 pm',
+      '¿Cómo va el próximo servicio?'
+    ];
+  };
 
   let mounted = null;
 
@@ -56,7 +59,7 @@
         <span class="ai-welcome-mark">${I('sparkle', 26)}</span>
         <h2>¿En qué te ayudo, ${esc(U.firstName(me.name))}?</h2>
         <p class="muted">Conozco el repertorio, el equipo y la agenda. Puedo proponer cambios, y tú decides si se aplican.</p>
-        <div class="ai-suggest">${SUGGESTIONS.map((s) => `<button class="ai-chip" data-suggest="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+        <div class="ai-suggest">${suggestions().map((s) => `<button class="ai-chip" data-suggest="${esc(s)}">${esc(s)}</button>`).join('')}</div>
       </div>`;
   }
 

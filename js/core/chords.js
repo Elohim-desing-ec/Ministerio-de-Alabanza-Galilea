@@ -16,7 +16,11 @@
   const LATIN_REV = { do: 'C', re: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B' };
   const DEGREES = ['1', 'b2', '2', 'b3', '3', '4', '#4', '5', 'b6', '6', 'b7', '7'];
   const CHORD_RE = /^([A-G])([#b]?)([^/\s]*?)(?:\/([A-G])([#b]?))?$/;
-  const SECTION_WORDS = /^\s*[[(]?\s*((?:intro|verso|verse|estrofa|coro|chorus|estribillo|pre-?coro|pre-?chorus|puente|bridge|interludio|instrumental|final|outro|tag|vamp)(?:\s*\d+)?)\s*[\])]?\s*:?\s*$/i;
+  const SECTION_WORDS = /^\s*[[(]?\s*((?:intro|introducci[oó]n|verso|verse|estrofa|coro|chorus|estribillo|pre-?\s?coro|pre-?chorus|puente|bridge|interludio|instrumental|solo|final|outro|tag|vamp)(?:\s*\d+)?)\s*[\])]?\s*[:.]?\s*(?:\(?\s*x\s?\d+\s*\)?)?\s*$/i;
+  // Acorde "estricto" para reconocer líneas de acordes sin confundir palabras (DE, ADORAR…)
+  const SUFFIX = '(?:maj|min|m|M|dim|aug|sus|add|º|°|ø|\\+|[0-9]|[#b](?=[0-9])|\\((?:[#b]?[0-9]+|add[0-9]+|sus[0-9]?)\\))*';
+  const STRICT_CHORD = new RegExp(`^([A-G])([#b]?)(${SUFFIX})(?:\\/([A-G])([#b]?))?$`);
+  const LATIN_CHORD = new RegExp(`^(Do|Re|Mi|Fa|Sol|La|Si)([#b]?)(${SUFFIX})(?:\\/(Do|Re|Mi|Fa|Sol|La|Si)([#b]?))?$`);
 
   const mod = (n) => ((n % 12) + 12) % 12;
 
@@ -210,32 +214,81 @@
   }
 
   // ---- Convertir "acordes arriba de la letra" → formato en línea ----
-  function isChordToken(t) {
-    const clean = t.replace(/^[(|]+|[)|]+$/g, '');
-    return !clean || CHORD_RE.test(clean) || /^(N\.?C\.?|x\d+|%|-+)$/i.test(clean);
+  const LATIN_TO_LETTER = { Do: 'C', Re: 'D', Mi: 'E', Fa: 'F', Sol: 'G', La: 'A', Si: 'B' };
+
+  /** Devuelve el acorde en letras (C, Dm7…) o null si el texto no es un acorde. */
+  function toChord(token) {
+    let t = String(token).replace(/\/+$/, '');
+    if (/^[([{].*[)\]}]$/.test(t)) t = t.slice(1, -1);
+    t = t.replace(/^[([{]+/, '');
+    if ((t.match(/\(/g) || []).length < (t.match(/\)/g) || []).length) t = t.replace(/[)\]}]+$/, '');
+    if (!t) return null;
+    if (STRICT_CHORD.test(t)) return t;
+    const m = LATIN_CHORD.exec(t);
+    if (m) return LATIN_TO_LETTER[m[1]] + m[2] + m[3] + (m[4] ? '/' + LATIN_TO_LETTER[m[4]] + (m[5] || '') : '');
+    return null;
   }
+
+  /** Marcas que pueden aparecer en una línea de acordes sin ser acordes. */
+  const isFiller = (t) => /^(\/+|\|+|-+|%|x\d+|\(x\d+\)|\(?\d+x\)?|N\.?C\.?|\.+|:|,)$/i.test(t);
+
+  /** Separa los tokens de una línea de acordes con su columna. "Am7-Gdim7/" → Am7 y Gdim7. */
+  function chordTokens(line) {
+    const out = [];
+    const re = /\S+/g;
+    let m;
+    while ((m = re.exec(line))) {
+      let offset = 0;
+      m[0].split(/-(?=[A-G]|Do|Re|Mi|Fa|Sol|La|Si)/).forEach((part) => {
+        const chord = toChord(part);
+        out.push({ pos: m.index + offset, text: part, chord });
+        offset += part.length + 1;
+      });
+    }
+    return out;
+  }
+
   function isChordLine(line) {
-    const toks = line.trim().split(/\s+/);
-    return !!line.trim() && toks.every(isChordToken) && toks.some((t) => CHORD_RE.test(t.replace(/[()|]/g, '')));
+    if (!line || !line.trim()) return false;
+    const toks = chordTokens(line);
+    const chords = toks.filter((t) => t.chord);
+    return chords.length > 0 && toks.every((t) => t.chord || isFiller(t.text));
+  }
+
+  function sectionName(line) {
+    const m = SECTION_WORDS.exec(line);
+    if (!m) return null;
+    const n = m[1].replace(/\s+/g, ' ').trim();
+    return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+  }
+
+  /** "Intro: G D Em C" → { name: 'Intro', chords: 'G D Em C' } */
+  function sectionWithChords(line) {
+    const m = /^\s*[[(]?\s*(intro|introducci[oó]n|interludio|instrumental|final|outro|puente|solo|coro|estribillo)\s*[\])]?\s*[:.\-]\s*(.+)$/i.exec(line);
+    if (!m || !isChordLine(m[2])) return null;
+    return { name: m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase(), chords: m[2] };
   }
 
   function fromChordsOverLyrics(text) {
-    const lines = String(text || '').replace(/\r/g, '').split('\n');
+    const lines = String(text || '').replace(/\r/g, '').replace(/\t/g, '    ').replace(/ /g, ' ').split('\n');
     const out = [];
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const sec = SECTION_WORDS.exec(line);
-      if (sec) { out.push(`{${sec[1].charAt(0).toUpperCase()}${sec[1].slice(1)}}`); continue; }
+      const line = lines[i].replace(/\s+$/, '');
+      // Ya está en formato en línea o es una sección {Coro}
+      if (/^\s*\{[^}]*\}\s*$/.test(line) || /\[[A-G][^\]]*\]/.test(line)) { out.push(line); continue; }
+      const sec = sectionName(line);
+      if (sec) { out.push(`{${sec}}`); continue; }
+      const swc = sectionWithChords(line);
+      if (swc) {
+        out.push(`{${swc.name}}`);
+        out.push(chordTokens(swc.chords).filter((t) => t.chord).map((t) => `[${t.chord}]`).join(' '));
+        continue;
+      }
       if (isChordLine(line)) {
-        const next = lines[i + 1];
-        const chords = [];
-        const re = /\S+/g; let m;
-        while ((m = re.exec(line))) {
-          const c = m[0].replace(/[()|]/g, '');
-          if (CHORD_RE.test(c)) chords.push({ pos: m.index, chord: c });
-        }
-        if (next != null && next.trim() && !isChordLine(next) && !SECTION_WORDS.test(next)) {
-          let lyric = next;
+        const chords = chordTokens(line).filter((t) => t.chord);
+        const next = lines[i + 1] != null ? lines[i + 1].replace(/\s+$/, '') : null;
+        if (next != null && next.trim() && !isChordLine(next) && !sectionName(next) && !sectionWithChords(next)) {
+          let lyric = next.replace(/\t/g, '    ');
           for (let k = chords.length - 1; k >= 0; k--) {
             const { pos, chord } = chords[k];
             if (lyric.length < pos) lyric = lyric.padEnd(pos, ' ');
@@ -250,7 +303,8 @@
       }
       out.push(line);
     }
-    return out.join('\n');
+    // Máximo una línea en blanco seguida
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
   App.chords = {
@@ -258,6 +312,6 @@
     parseKey, transposeKey, semitones, keysFor, readKey,
     parseChord, formatChord, formatKey,
     parseChart, sectionNames, progression, render,
-    isChordLine, fromChordsOverLyrics
+    isChordLine, fromChordsOverLyrics, toChord, sectionName, chordTokens
   };
 })();

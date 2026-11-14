@@ -25,7 +25,7 @@
             <div class="field"><label class="field-label" for="sf-artist">Autor / versión</label><input class="input" id="sf-artist" name="artist" value="${esc(s.artist)}"></div>
             <div class="field-row">
               <div class="field"><label class="field-label" for="sf-key">Tono original</label><select class="select mono" id="sf-key" name="key">${allKeys.map((k) => `<option ${k === s.key ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
-              <div class="field"><label class="field-label" for="sf-bpm">BPM</label><input class="input mono" type="number" min="30" max="240" id="sf-bpm" name="bpm" value="${esc(s.bpm)}"></div>
+              <div class="field"><label class="field-label" for="sf-bpm">BPM</label><input class="input mono" type="number" min="0" max="240" id="sf-bpm" placeholder="—" name="bpm" value="${esc(s.bpm)}"></div>
               <div class="field"><label class="field-label" for="sf-time">Compás</label><select class="select" id="sf-time" name="time">${['4/4', '3/4', '6/8', '2/4', '12/8'].map((t) => `<option ${t === s.time ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
             </div>
             <div class="field-row">
@@ -64,7 +64,7 @@
             const d = Object.fromEntries(new FormData(f).entries());
             const [mm, ss] = String(d.duration || '0:00').split(':').map(Number);
             const song = Object.assign(existing ? U.clone(existing) : {}, {
-              title: d.title.trim(), artist: d.artist.trim(), key: d.key, bpm: Number(d.bpm) || 72, time: d.time, tempo: d.tempo,
+              title: d.title.trim(), artist: d.artist.trim(), key: d.key, bpm: Number(d.bpm) || 0, time: d.time, tempo: d.tempo,
               duration: (mm || 0) * 60 + (ss || 0),
               tags: d.tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean),
               arrangement: d.arrangement.split(',').map((t) => t.trim()).filter(Boolean),
@@ -140,7 +140,7 @@
               <p class="muted">${esc(s.artist || '')}</p>
               <div class="song-meta">
                 <span class="meta-item"><span class="eyebrow">Original</span>${ui.keyBadge(s.key)}</span>
-                <span class="meta-item"><span class="eyebrow">BPM</span><span class="mono strong">${s.bpm}</span></span>
+                <span class="meta-item"><span class="eyebrow">BPM</span><span class="mono strong">${s.bpm || '—'}</span></span>
                 <span class="meta-item"><span class="eyebrow">Compás</span><span class="mono strong">${esc(s.time || '4/4')}</span></span>
                 <span class="meta-item"><span class="eyebrow">Duración</span><span class="mono strong">${U.fmtDuration(s.duration)}</span></span>
                 <span class="meta-item"><span class="eyebrow">Ritmo</span><span class="strong">${esc(M.tempoLabel(s.tempo))}</span></span>

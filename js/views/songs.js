@@ -20,6 +20,13 @@
   }
 
   function rows() {
+    if (!M.songs().length) {
+      return ui.empty({
+        icon: 'music', title: 'Tu repertorio está vacío',
+        text: 'Sube los PDF de LaCuerda.net y la app lee la letra, los acordes y el tono por ti.',
+        action: M.isLeader() ? `<div class="row" style="justify-content:center"><button class="btn btn--primary" data-act="import">${I('arrow-up', 16)} Importar PDF</button><button class="btn btn--ghost" data-act="new">${I('plus', 16)} Escribir una</button></div>` : ''
+      });
+    }
     const list = filteredSongs();
     if (!list.length) return ui.empty({ icon: 'search', title: 'No encontramos canciones', text: 'Prueba con otra palabra o quita los filtros.' });
     const notation = App.store.state.prefs.notation;
@@ -34,7 +41,7 @@
           <a class="song-tr" role="row" href="#cancion-${esc(s.id)}">
             <span class="song-name" role="cell"><span class="strong truncate">${esc(s.title)}</span><span class="xsmall faint truncate">${esc(s.artist || '')}</span></span>
             <span role="cell">${ui.keyBadge(s.key)}</span>
-            <span role="cell" class="mono small">${s.bpm} <span class="faint">· ${esc(M.tempoLabel(s.tempo))}</span></span>
+            <span role="cell" class="mono small">${s.bpm || '—'} <span class="faint">· ${esc(M.tempoLabel(s.tempo))}</span></span>
             <span role="cell" class="song-tags">${(s.tags || []).slice(0, 3).map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</span>
             <span role="cell" class="small muted">${last ? U.relDay(last) : 'Nunca'}</span>
           </a>`;
@@ -57,7 +64,7 @@
               <p class="muted">${U.plural(M.songs().length, 'canción', 'canciones')} con acordes, tonalidad y arreglo.</p>
             </div>
             <div class="view-actions">
-              ${leader ? `<button class="btn btn--primary" data-act="new">${I('plus', 16)} Nueva canción</button>` : ''}
+              ${leader ? `<button class="btn btn--ghost" data-act="new">${I('plus', 16)} Nueva canción</button><button class="btn btn--primary" data-act="import">${I('arrow-up', 16)} Importar PDF</button>` : ''}
             </div>
           </header>
 
@@ -92,6 +99,7 @@
         const tag = e.target.closest('[data-tag]');
         if (tag) { vs.tag = tag.dataset.tag; App.app.refresh(); return; }
         if (e.target.closest('[data-act="new"]')) App.forms.song();
+        if (e.target.closest('[data-act="import"]')) App.importer.open();
       });
     }
   };

@@ -95,6 +95,7 @@
   // Intenciones
   // ---------------------------------------------------------------------
   function setlist(t, ev) {
+    if (!M.songs().length) return 'Todavía no hay canciones en el repertorio. Ve a **Canciones → Importar PDF** y sube tus PDF de LaCuerda.net; después te armo el setlist.';
     if (!ev) return 'No encontré eventos próximos. Crea uno en la Agenda y vuelve a pedírmelo.';
     const themeText = `${t} ${U.normalize(ev.title)} ${U.normalize(ev.notes || '')}`;
     const themes = themesIn(themeText);
@@ -144,7 +145,7 @@
 
     let out = `**Setlist sugerido** para ${evLine(ev)}\n`;
     out += themes.length ? `Temas que tomé en cuenta: ${themes.join(', ')}.\n\n` : 'No detecté un tema específico, así que priorizo el flujo y la variedad.\n\n';
-    out += picked.map((x, i) => `${i + 1}. **${x.s.title}** · ${fk(x.s.key)} · ${x.s.bpm} BPM, ${M.tempoLabel(x.s.tempo).toLowerCase()}: ${why(x, i)}.`).join('\n');
+    out += picked.map((x, i) => `${i + 1}. **${x.s.title}** · ${fk(x.s.key)} · ${M.bpm(x.s)}, ${M.tempoLabel(x.s.tempo).toLowerCase()}: ${why(x, i)}.`).join('\n');
     out += `\n\n**Tonalidades:** ${keys.map(fk).join(' → ')}. Duración aproximada: ${U.fmtMinutes(total)}.`;
     if (jumps.length) out += `\n\nHay un salto grande de tono ${jumps.join(' y ')}. Un pad del teclado o un pequeño interludio ayuda a la transición.`;
     if (recentUsed.length) out += `\n\nNota: ${recentUsed.map((x) => `«${x.s.title}»`).join(', ')} se cantó en las últimas dos semanas; la incluí porque encaja mejor con el tema.`;

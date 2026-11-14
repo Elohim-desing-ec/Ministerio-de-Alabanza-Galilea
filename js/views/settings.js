@@ -11,7 +11,7 @@
     if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme);
     else root.removeAttribute('data-theme');
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'light' ? '#F6F4F4' : '#060507');
+    if (meta) meta.setAttribute('content', theme === 'light' ? '#F6F7FA' : '#07080C');
   }
   App.applyTheme = applyTheme;
 
@@ -102,6 +102,12 @@
             </section>
 
             <section class="panel">
+              <h2 class="panel-title">${I('phone', 16)} App en tu celular</h2>
+              <p class="small muted">${App.pwa.isStandalone() ? 'Ya estás usando la app instalada.' : 'Instálala en la pantalla de inicio de tu celular o computadora. No necesita Play Store ni App Store y abre aunque no haya internet.'}</p>
+              ${App.pwa.isStandalone() ? '' : `<div><button class="btn btn--primary btn--sm" data-act="install">${I('arrow-down', 14)} Instalar app</button></div>`}
+            </section>
+
+            <section class="panel">
               <h2 class="panel-title">${I('key', 16)} Sesión</h2>
               <p class="small muted">Entraste como <strong>${esc((M.member((App.auth.current() || {}).memberId) || M.me()).name)}</strong>${App.auth.current() ? ` con el usuario <span class="mono">${esc(App.auth.current().username)}</span>` : ''}.</p>
               ${leader ? '<p class="small muted">Para crear el usuario y la contraseña de cada persona, ve a <a href="#equipo">Equipo</a>, abre a la persona y pulsa Editar.</p>' : ''}
@@ -113,8 +119,9 @@
               <p class="small muted">En esta demo los datos viven en este navegador. Para compartirlos con todo el equipo en tiempo real, conecta un servidor (ver README).</p>
               <div class="row">
                 <button class="btn btn--ghost btn--sm" data-act="export">${I('copy', 14)} Copiar respaldo</button>
-                <button class="btn btn--ghost btn--sm" data-act="import">${I('arrow-down', 14)} Restaurar respaldo</button>
-                <button class="btn btn--danger btn--sm" data-act="reset">${I('refresh', 14)} Restablecer demo</button>
+                ${leader ? `<button class="btn btn--ghost btn--sm" data-act="import">${I('arrow-down', 14)} Restaurar respaldo</button>
+                <button class="btn btn--ghost btn--sm" data-act="demo">${I('sparkle', 14)} Cargar datos de ejemplo</button>
+                <button class="btn btn--danger btn--sm" data-act="reset">${I('refresh', 14)} Empezar de cero</button>` : ''}
               </div>
               <dl class="dl small">
                 <dt>Personas</dt><dd class="mono">${s.members.length}</dd>
@@ -189,6 +196,14 @@
           case 'logout':
             App.auth.logout();
             break;
+          case 'install':
+            App.pwa.install();
+            break;
+          case 'demo': {
+            const ok = await ui.confirm({ title: 'Cargar datos de ejemplo', message: 'Se reemplazarán los datos de este navegador por un equipo, canciones y eventos de ejemplo para probar la app. Las cuentas creadas aquí se perderán.', confirmLabel: 'Cargar ejemplo', danger: true });
+            if (ok) { App.store.loadDemo(); ui.toast('Datos de ejemplo cargados.'); App.router.go('inicio'); }
+            break;
+          }
           case 'save-ai':
             AI.saveSettings(readAI());
             ui.toast('Configuración de IA guardada.');
@@ -217,8 +232,8 @@
             });
             break;
           case 'reset': {
-            const ok = await ui.confirm({ title: 'Restablecer la demo', message: 'Se borrarán los cambios hechos en este navegador y volverán los datos de ejemplo.', confirmLabel: 'Restablecer', danger: true });
-            if (ok) { App.store.reset(); applyTheme('system'); ui.toast('Demo restablecida.'); App.router.go('inicio'); }
+            const ok = await ui.confirm({ title: 'Empezar de cero', message: 'Se borrarán el equipo, las canciones, los eventos y los mensajes guardados en este navegador. Solo quedará Byron como líder.', confirmLabel: 'Borrar todo', danger: true });
+            if (ok) { App.store.reset(); applyTheme('dark'); ui.toast('Listo, empiezas de cero.'); App.router.go('inicio'); }
             break;
           }
         }

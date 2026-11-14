@@ -22,7 +22,7 @@
 }
 .svc-day { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1; }
 .svc-mon { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .75; margin-top: 2px; }
-.svc-card.is-pending .svc-date { background: var(--brand-burgundy); }
+.svc-card.is-pending .svc-date { background: var(--accent); }
 .svc-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .svc-title { font-size: var(--fs-lg); }
 .svc-role {

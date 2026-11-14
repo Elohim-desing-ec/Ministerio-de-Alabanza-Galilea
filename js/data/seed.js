@@ -213,7 +213,24 @@
     ['m21', 'Kevin Soto', ['sonido', 'proyeccion'], ['t3']]
   ];
 
-  App.seed = function seed() {
+  /** Datos de inicio: solo el líder. El resto lo agrega él desde la app. */
+  function cleanSeed() {
+    return {
+      version: App.store.SCHEMA,
+      settings: { churchName: App.config.churchName, ministryName: App.config.ministryName },
+      session: { userId: 'm1' },
+      prefs: { notation: 'letras', timeFormat: '12h', theme: 'dark' },
+      teams: [],
+      members: [{ id: 'm1', name: 'Byron', roles: ['director', 'voz'], teams: [], phone: '', email: '', unavailable: [], leader: true, admin: true }],
+      songs: [],
+      events: [],
+      messages: []
+    };
+  }
+
+  /** seed() = inicio limpio · seed({ demo: true }) = datos de ejemplo para probar */
+  App.seed = function seed({ demo = false } = {}) {
+    if (!demo) return cleanSeed();
     const today = U.parseYmd(U.today());
     const sunday = U.addDays(today, (7 - today.getDay()) % 7); // próximo domingo (o hoy)
     const d = (n) => U.ymd(U.addDays(sunday, n));

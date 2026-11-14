@@ -37,7 +37,7 @@
           <span class="stage-count mono">${st.index + 1}/${list.length}</span>
           <div class="grow">
             <h2>${esc(s.title)}</h2>
-            <p>${ev ? esc(ev.title) + ' · ' : ''}${cur.leader ? 'Dirige ' + esc(cur.leader.name) + ' · ' : ''}<span class="mono">${s.bpm} BPM · ${esc(s.time || '4/4')}</span></p>
+            <p>${ev ? esc(ev.title) + ' · ' : ''}${cur.leader ? 'Dirige ' + esc(cur.leader.name) + ' · ' : ''}<span class="mono">${M.bpm(s)} · ${esc(s.time || '4/4')}</span></p>
           </div>
           <span class="stage-key mono">${esc(App.chords.formatKey(cur.key, st.mode))}</span>
         </div>

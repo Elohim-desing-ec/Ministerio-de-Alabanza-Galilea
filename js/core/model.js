@@ -172,6 +172,8 @@
 
   M.songEvents = (songId) => M.sortEvents(S().events.filter((e) => e.setlist.some((it) => it.songId === songId)), -1);
 
+  M.bpm = (s) => (s && s.bpm ? `${s.bpm} BPM` : 'BPM —');
+
   M.tempoLabel = (id) => (App.config.tempos.find((t) => t.id === id) || { label: id }).label;
 
   M.allTags = () => {

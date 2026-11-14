@@ -80,6 +80,12 @@
       emit({ reset: true });
     },
 
+    loadDemo() {
+      state = App.seed({ demo: true });
+      persist();
+      emit({ reset: true });
+    },
+
     replace(data) {
       if (!valid(data)) throw new Error('El archivo no tiene el formato de Selah (versión, miembros, canciones y eventos).');
       state = data;

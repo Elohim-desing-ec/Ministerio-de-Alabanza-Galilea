@@ -94,6 +94,7 @@
         <div class="ms-head">${ui.avatar(real, 'xl')}<div class="stack-sm"><span class="strong">${esc(real.name)}</span><span class="small muted">${M.isLeader(real) ? 'Líder de alabanza' : real.roles.map(M.posLabel).join(', ')}${session ? ` · usuario <span class="mono">${esc(session.username)}</span>` : ''}</span></div></div>
         <div class="row">
           <a class="btn btn--ghost btn--sm" href="#ajustes" data-close>${I('sliders', 14)} Ajustes</a>
+          ${App.pwa.isStandalone() ? '' : `<button class="btn btn--ghost btn--sm" data-act="install">${I('arrow-down', 14)} Instalar app</button>`}
           <button class="btn btn--danger btn--sm" data-act="logout">${I('arrow-right', 14)} Cerrar sesión</button>
         </div>
         ${canPreview ? `
@@ -110,6 +111,7 @@
     });
     m.body.addEventListener('click', (e) => {
       if (e.target.closest('[data-act="logout"]')) { App.auth.logout(); return; }
+      if (e.target.closest('[data-act="install"]')) { m.close(); App.pwa.install(); return; }
       const b = e.target.closest('[data-user]');
       if (!b) return;
       App.actions.switchUser(b.dataset.user);
@@ -148,6 +150,7 @@
   }
 
   function boot() {
+    App.pwa.register();
     App.store.init();
     App.applyTheme(App.store.state.prefs.theme);
     const session = App.auth.current();

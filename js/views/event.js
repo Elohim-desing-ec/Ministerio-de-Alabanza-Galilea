@@ -116,7 +116,7 @@
         const last = M.songLastUsed(s.id);
         return `<div class="list-row">
           ${ui.keyBadge(s.key)}
-          <div class="grow stack-sm"><span class="strong truncate">${esc(s.title)}</span><span class="xsmall faint">${s.bpm} BPM · ${esc(M.tempoLabel(s.tempo))} · ${(s.tags || []).map(esc).join(', ')}${last ? ` · usada ${U.relDay(last).toLowerCase()}` : ''}</span></div>
+          <div class="grow stack-sm"><span class="strong truncate">${esc(s.title)}</span><span class="xsmall faint">${M.bpm(s)} · ${esc(M.tempoLabel(s.tempo))} · ${(s.tags || []).map(esc).join(', ')}${last ? ` · usada ${U.relDay(last).toLowerCase()}` : ''}</span></div>
           <button class="btn btn--sm ${inSet.has(s.id) ? 'btn--ghost' : 'btn--soft'}" data-add="${esc(s.id)}" ${inSet.has(s.id) ? 'disabled' : ''}>${inSet.has(s.id) ? `${I('check', 14)} En el setlist` : `${I('plus', 14)} Agregar`}</button>
         </div>`;
       }).join('') || '<p class="small muted" style="padding:16px">Sin resultados.</p>';
@@ -163,7 +163,7 @@
           <span class="sl-num mono">${i + 1}</span>
           <div class="sl-main">
             <button class="sl-title" data-open="${esc(s.id)}" data-key="${esc(it.key)}">${esc(s.title)}</button>
-            <span class="xsmall faint">${s.bpm} BPM · ${esc(M.tempoLabel(s.tempo))} · ${U.fmtDuration(s.duration)}${diff ? ` · ${diff > 0 ? '+' : ''}${diff} del original (${esc(App.chords.formatKey(s.key, notation))})` : ''}</span>
+            <span class="xsmall faint">${M.bpm(s)} · ${esc(M.tempoLabel(s.tempo))} · ${U.fmtDuration(s.duration)}${diff ? ` · ${diff > 0 ? '+' : ''}${diff} del original (${esc(App.chords.formatKey(s.key, notation))})` : ''}</span>
           </div>
           <div class="sl-key">
             ${leader ? `<label class="sr-only" for="k-${i}">Tonalidad</label><select class="select select--sm mono" id="k-${i}" data-field="key" data-idx="${i}">${keys.map((k) => `<option value="${k}" ${k === it.key ? 'selected' : ''}>${esc(App.chords.formatKey(k, notation))}</option>`).join('')}</select>` : ui.keyBadge(it.key)}
