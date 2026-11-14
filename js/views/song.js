@@ -97,6 +97,44 @@
   // Auto-scroll en la página
   // ---------------------------------------------------------------------
   function stopScroll() { vs.scrolling = false; if (raf) cancelAnimationFrame(raf); raf = null; }
+
+  // ---------------------------------------------------------------------
+  // La letra sigue al video que suena en el reproductor (si está sincronizada)
+  // ---------------------------------------------------------------------
+  let kRaf = null;
+  function stopKaraoke() { if (kRaf) cancelAnimationFrame(kRaf); kRaf = null; }
+  function karaoke(root, s, n) {
+    stopKaraoke();
+    const plan = App.yt.planFor(s);
+    const sub = App.practice.meterOf(s.time).sub;
+    let last = -2;
+    const tick = () => {
+      if (!document.body.contains(root)) { kRaf = null; return; }
+      const now = App.player.now();
+      if (now && now.videoId && now.time != null) {
+        const marks = App.yt.marksFor(s, now.videoId).marks;
+        if (marks.length >= 2) {
+          const ev = App.yt.chordAt(marks, plan, now.time, s.bpm || 80, sub);
+          const ci = ev ? ev.ci : -1;
+          if (ci !== last) {
+            last = ci;
+            const chart = root.querySelector('#song-chart');
+            chart.querySelectorAll('.cc.is-now').forEach((x) => x.classList.remove('is-now'));
+            chart.querySelectorAll('.cl.is-now-line').forEach((x) => x.classList.remove('is-now-line'));
+            const c = ci >= 0 && chart.querySelector(`.cc[data-ci="${ci}"]`);
+            const line = c && c.closest('.cl');
+            if (c) { c.classList.add('is-now'); if (line) line.classList.add('is-now-line'); }
+            if (line && now.playing) {
+              const r = line.getBoundingClientRect();
+              if (r.height && (r.top < window.innerHeight * 0.18 || r.bottom > window.innerHeight * 0.62)) window.scrollTo({ top: window.scrollY + r.top - window.innerHeight * 0.3, behavior: 'smooth' });
+            }
+          }
+        }
+      }
+      kRaf = requestAnimationFrame(tick);
+    };
+    kRaf = requestAnimationFrame(tick);
+  }
   function startScroll() {
     vs.scrolling = true;
     let acc = 0;
@@ -114,7 +152,7 @@
   // ---------------------------------------------------------------------
   App.views.cancion = {
     title: 'Canción',
-    onLeave: stopScroll,
+    onLeave: () => { stopScroll(); stopKaraoke(); },
     render(root, id) {
       const s = M.song(id);
       if (!s) {
@@ -204,6 +242,7 @@
                 ${links.length ? `<div class="listen-links listen-links--side">${links.map((l, k) => ui.linkRow(l, { i: `0:${k}`, canRemove: leader && l.source === 'song', removeKey: l.id })).join('')}</div>`
                   : `<p class="small muted">${leader ? 'Agrega el link de YouTube, Spotify o Drive de la versión que van a tocar.' : 'Todavía no hay grabación de esta canción.'}</p>`}
                 ${leader ? `<button class="btn btn--ghost btn--sm" data-act="add-link">${I('plus', 13)} Agregar grabación</button>` : ''}
+                ${links.some((l) => { const i = App.media.parse(l.url); return i && i.kind === 'youtube' && i.id; }) ? `<p class="xsmall faint">${links.some((l) => { const i = App.media.parse(l.url); return i && i.kind === 'youtube' && App.yt.hasSync(s, i.id); }) ? '✓ Al darle play, la letra sigue al video.' : 'Sincroniza la letra con el video en <strong>Ensayar</strong> y luego, al darle play, los acordes cambian solos.'}</p>` : ''}
               </section>
               ${s.notes ? `<section class="panel"><h2 class="panel-title">${I('bell', 16)} Notas</h2><p class="small" style="white-space:pre-wrap">${esc(s.notes)}</p></section>` : ''}
               <section class="panel">
@@ -270,6 +309,7 @@
       });
 
       ui.hydrateLinkTitles(root);
+      karaoke(root, s, n);
 
       // Resaltar la sección al pasar por el chip del arreglo
       const chart = root.querySelector('#song-chart');

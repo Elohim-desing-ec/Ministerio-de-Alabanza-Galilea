@@ -11,6 +11,7 @@
   const NAV = [
     { route: 'inicio', label: 'Inicio', icon: 'home', match: ['inicio'] },
     { route: 'calendario', label: 'Agenda', icon: 'calendar', match: ['calendario', 'evento'] },
+    { route: 'cronograma', label: 'Cronograma', icon: 'columns', match: ['cronograma'], more: true },
     { route: 'canciones', label: 'Canciones', icon: 'music', match: ['canciones', 'cancion'] },
     { route: 'escuchar', label: 'Escuchar', icon: 'headphones', match: ['escuchar'] },
     { route: 'chat', label: 'Chat', icon: 'chat', match: ['chat'] },

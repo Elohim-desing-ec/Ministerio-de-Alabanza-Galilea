@@ -373,4 +373,38 @@
   }
 
   App.schedule = { view, bind, create, fill, share, poster, datesFor };
+
+  // ---------------------------------------------------------------------
+  // Pantalla propia: #cronograma
+  // ---------------------------------------------------------------------
+  const vs = App.viewState.schedule = { month: U.today().slice(0, 7) };
+  App.views.cronograma = {
+    title: 'Cronograma',
+    render(root) {
+      const [y, m] = vs.month.split('-').map(Number);
+      root.innerHTML = `
+        <div class="view view--schedule">
+          <header class="view-head">
+            <div class="titles">
+              <span class="eyebrow">${esc(M.settings().ministryName)}</span>
+              <h1 class="view-title">Cronograma</h1>
+              <p class="muted">Quién sirve en cada culto del mes. Es la misma información de la Agenda.</p>
+            </div>
+            <div class="view-actions cr-nav">
+              <button class="btn btn--ghost btn--icon" data-m="-1" aria-label="Mes anterior">${I('chevron-left', 18)}</button>
+              <span class="cr-nav-label">${esc(U.fmtDate(vs.month + '-01', 'month'))}</span>
+              <button class="btn btn--ghost btn--icon" data-m="1" aria-label="Mes siguiente">${I('chevron-right', 18)}</button>
+            </div>
+          </header>
+          ${view(vs.month)}
+        </div>`;
+      bind(root, vs.month);
+      root.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-m]');
+        if (!b) return;
+        vs.month = U.ymd(new Date(y, m - 1 + Number(b.dataset.m), 1)).slice(0, 7);
+        App.app.refresh();
+      });
+    }
+  };
 })();

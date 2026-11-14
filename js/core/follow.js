@@ -226,6 +226,13 @@
     const plan = P.plan;
     const start = plan.find((e) => e.ci === a.ci);
     if (!start) return null;
+    // Entre dos marcas: los acordes se reparten en el tiempo real que hay entre ellas
+    const end = next && plan.find((e) => e.ci === next.ci);
+    if (end && next.b > a.b && end.startStep > start.startStep) {
+      const step = start.startStep + ((i - a.b) / (next.b - a.b)) * (end.startStep - start.startStep);
+      const ev = evAtStep(step);
+      return ev && ev.ci >= next.ci ? plan[Math.max(0, plan.indexOf(end) - 1)] : ev;
+    }
     let ev = evAtStep(start.startStep + (i - a.b) * P.meter.sub);
     if (ev && next && ev.ci >= next.ci) {
       const k = plan.findIndex((e) => e.ci === next.ci);
@@ -266,6 +273,12 @@
     lastCi = -2;
     persistMeta();
     emit({ type: 'marks' });
+  }
+
+  function undoMark() {
+    if (!state.marks.length) return;
+    state.marks = state.marks.slice(0, -1);
+    resolved = null; lastCi = -2; persistMeta(); emit({ type: 'marks' });
   }
 
   function clearMarks() { state.marks = []; resolved = null; lastCi = -2; persistMeta(); emit({ type: 'marks' }); }
@@ -534,7 +547,8 @@
     state, mic, prefs,
     load, loadUrl, restore, unload, remove,
     play, pause, toggle() { if (state.playing) pause(); else play(); },
-    seek, playFrom, markAt, clearMarks, timeOfChord,
+    seek, playFrom, markAt, clearMarks, undoMark, timeOfChord,
+    currentTime: () => (el ? el.currentTime : 0),
     setRate, setVol, setOffset, setLoopPoint, toggleLoop, clearLoop, fix, share,
     listen, stopMic, startOnGrid,
     isActive: (songId) => state.status === 'ready' && state.songId === songId,

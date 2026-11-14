@@ -247,5 +247,14 @@
     return m;
   }
 
-  App.player = { play, close, itemOf, askLink, get active() { return !!el; } };
+  /** Lo que suena ahora en YouTube (para que la letra lo siga). */
+  function now() {
+    if (!el || !queue[index]) return null;
+    const info = App.media.parse(queue[index].url);
+    let t = null, playing = false;
+    try { if (yt && yt.getCurrentTime) { t = yt.getCurrentTime(); playing = yt.getPlayerState && yt.getPlayerState() === 1; } } catch (e) { /* nada */ }
+    return { url: queue[index].url, videoId: info && info.kind === 'youtube' ? info.id : null, time: t, playing };
+  }
+
+  App.player = { play, close, itemOf, askLink, now, loadYouTubeApi, get active() { return !!el; } };
 })();

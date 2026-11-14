@@ -1,0 +1,132 @@
+/* =========================================================================
+   SELAH · Movimiento y detalles
+   Fondo de luces que se mueve despacio, tarjetas que se levantan al
+   pasar, botones con brillo, pestañas y menú animados, listas que entran
+   en cascada. Todo se apaga con "reducir movimiento" (animations.css).
+   ========================================================================= */
+
+/* ---- Fondo: luces de escenario que respiran ---- */
+.aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.aurora span {
+  position: absolute; border-radius: 50%;
+  filter: blur(80px);
+  opacity: .5;
+  will-change: transform;
+}
+.aurora span:nth-child(1) { width: 46vmax; height: 46vmax; left: -12vmax; top: -18vmax; background: radial-gradient(circle, rgb(91 91 247 / .35), transparent 65%); animation: aurora-a 26s ease-in-out infinite alternate; }
+.aurora span:nth-child(2) { width: 40vmax; height: 40vmax; right: -14vmax; top: 20vh; background: radial-gradient(circle, rgb(139 92 246 / .22), transparent 65%); animation: aurora-b 32s ease-in-out infinite alternate; }
+.aurora span:nth-child(3) { width: 34vmax; height: 34vmax; left: 30vw; bottom: -20vmax; background: radial-gradient(circle, rgb(94 231 240 / .16), transparent 65%); animation: aurora-c 38s ease-in-out infinite alternate; }
+:root[data-theme="light"] .aurora span { opacity: .35; }
+@keyframes aurora-a { to { transform: translate(14vw, 10vh) scale(1.15); } }
+@keyframes aurora-b { to { transform: translate(-12vw, -8vh) scale(.9); } }
+@keyframes aurora-c { to { transform: translate(-10vw, -12vh) scale(1.2); } }
+
+/* ---- Tarjetas que se levantan ---- */
+.svc-card, .member-card, .ls-song, .st-card, .nt-invite, .lk-row, .song-tr, .up-row, .att-row, .ch-item, .menu-item, .wk-ev, .cal-ev {
+  transition: transform 260ms var(--ease-out), box-shadow 260ms var(--ease-out), background-color var(--dur-1), border-color var(--dur-1);
+}
+@media (hover: hover) {
+  .svc-card:hover, .member-card:hover, .ls-song:hover { transform: translateY(-3px); box-shadow: var(--glass-shadow), 0 18px 40px -22px var(--accent-glow); }
+  .st-card:hover { transform: translateY(-2px); }
+  .lk-row:hover, .ch-item:hover, .menu-item:hover { transform: translateX(2px); }
+  .wk-ev:hover, .cal-ev:hover { transform: translateY(-1px); }
+}
+
+/* ---- Botones ---- */
+.btn { position: relative; }
+.btn--primary { overflow: hidden; }
+.onboard-step > .btn, .att-row > .btn, .lk-row > .btn { flex-shrink: 0; }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn--primary::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / .28) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+@media (hover: hover) { .btn--primary:hover:not(:disabled)::after { animation: sheen 900ms var(--ease-out); } }
+@keyframes sheen { to { transform: translateX(120%); } }
+.btn--primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), 0 10px 26px -12px var(--accent-glow); }
+.btn--ok { box-shadow: 0 8px 20px -12px rgb(74 222 128 / .7); }
+:focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 2px; border-radius: 8px; }
+
+/* ---- Menú lateral: barra que marca dónde estás ---- */
+.nav-item { position: relative; }
+.nav-item.is-active::before {
+  content: ""; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, var(--brand-cyan), var(--accent-hi));
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: bar-in 360ms var(--ease-out) both;
+}
+@keyframes bar-in { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
+.nav-item .icon { transition: transform 260ms var(--ease-out); }
+.nav-item:hover .icon { transform: scale(1.12) rotate(-4deg); }
+.nav-count { animation: pop 420ms var(--ease-out); }
+
+/* ---- Pestañas del celular: píldora detrás del ícono ---- */
+.tab { position: relative; transition: color var(--dur-2); }
+.tab .tab-icon, .tab > .icon { position: relative; z-index: 1; transition: transform 300ms cubic-bezier(.3, 1.5, .5, 1); }
+.tab.is-active .tab-icon, .tab.is-active > .icon { transform: translateY(-2px) scale(1.08); }
+.tab.is-active::before {
+  content: ""; position: absolute; top: 4px; left: 50%; width: 52px; height: 30px; margin-left: -26px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px rgb(122 114 255 / .25);
+  animation: pill-in 340ms cubic-bezier(.3, 1.4, .5, 1) both;
+}
+@keyframes pill-in { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---- Pestañas: subrayado que crece ---- */
+.tabs button.is-on::after { animation: underline-in 320ms var(--ease-out) both; transform-origin: center; }
+@keyframes underline-in { from { transform: scaleX(0); } to { transform: none; } }
+.seg button, .stage-seg button { transition: background var(--dur-2) var(--ease-out), color var(--dur-2), box-shadow var(--dur-2); }
+
+/* ---- Listas que entran en cascada ---- */
+.view-enter .grid-cards > *, .view-enter .ls-songs > *, .view-enter .list > .list-row, .view-enter .setlist > *, .view-enter .member-grid > *, .view-enter .cr-ev, .view-enter .st-rank-row, .view-enter .song-tr {
+  animation: fade-up 460ms var(--ease-out) both;
+}
+.view-enter :is(.grid-cards, .ls-songs, .list, .setlist, .member-grid, .st-rank) > :nth-child(2) { animation-delay: 40ms; }
+.view-enter :is(.grid-cards, .ls-songs, .list, .setlist, .member-grid, .st-rank) > :nth-child(3) { animation-delay: 80ms; }
+.view-enter :is(.grid-cards, .ls-songs, .list, .setlist, .member-grid, .st-rank) > :nth-child(4) { animation-delay: 120ms; }
+.view-enter :is(.grid-cards, .ls-songs, .list, .setlist, .member-grid, .st-rank) > :nth-child(5) { animation-delay: 160ms; }
+.view-enter :is(.grid-cards, .ls-songs, .list, .setlist, .member-grid, .st-rank) > :nth-child(n+6) { animation-delay: 200ms; }
+
+/* ---- Títulos con un brillo sutil ---- */
+:root:not([data-theme="light"]) .view-title {
+  background: linear-gradient(180deg, #FFFFFF 30%, #C9C6FF);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ---- Ventanas: fondo desenfocado y entrada con rebote ---- */
+.scrim { -webkit-backdrop-filter: blur(6px) saturate(120%); backdrop-filter: blur(6px) saturate(120%); }
+.overlay--dialog .modal { animation: modal-in 460ms cubic-bezier(.2, 1.25, .4, 1) both; }
+@keyframes modal-in { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) { .overlay--dialog .modal { animation: sheet-up 420ms var(--ease-out) both; } }
+
+/* ---- Avisos (toasts) que suben con rebote ---- */
+.toast { animation: toast-pop 420ms cubic-bezier(.2, 1.3, .4, 1) both; border: 1px solid rgb(255 255 255 / .06); }
+@keyframes toast-pop { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+
+/* ---- Avatares ---- */
+.avatar { transition: transform 260ms var(--ease-out), box-shadow 260ms; }
+@media (hover: hover) { .person:hover .avatar, .menu-item:hover .avatar { transform: scale(1.08); box-shadow: 0 0 0 2px var(--accent-soft); } }
+
+/* ---- Logo con latido suave ---- */
+.brand-mark { transition: transform 400ms cubic-bezier(.3, 1.5, .5, 1); }
+.brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
+
+/* ---- Campana que se mueve si hay avisos ---- */
+.bell-btn:has(.bell-dot:not([hidden])) .icon, .bell-item:has(.bell-count:not([hidden])) .icon { animation: bell-ring 2.8s ease-in-out infinite; transform-origin: 50% 10%; }
+@keyframes bell-ring { 0%, 86%, 100% { transform: rotate(0); } 89% { transform: rotate(14deg); } 92% { transform: rotate(-12deg); } 95% { transform: rotate(8deg); } 98% { transform: rotate(-4deg); } }
+
+/* ---- Modo escenario: pulso en cada tiempo ---- */
+.tr-dot.is-on { animation: beat-ring 420ms var(--ease-out); }
+@keyframes beat-ring { 0% { box-shadow: 0 0 0 0 rgb(122 114 255 / .7); } 100% { box-shadow: 0 0 0 12px transparent; } }
+.tr-dot.is-first.is-on { animation-name: beat-ring-1; }
+@keyframes beat-ring-1 { 0% { box-shadow: 0 0 0 0 rgb(94 231 240 / .8); } 100% { box-shadow: 0 0 0 14px transparent; } }
+.stage-chart .cl { transition: opacity 300ms var(--ease-out); }
+.stage-chart.is-practice:has(.cl.is-now-line) .cl:not(.is-now-line):not(.cl--blank) { opacity: .62; }
+.stage-chart.is-practice .cl.is-now-line { opacity: 1; }
+
+/* ---- Barra de progreso del ensayo ---- */
+.sp-range::-webkit-slider-thumb { transition: transform 160ms; }
+.sp-range:active::-webkit-slider-thumb { transform: scale(1.25); }

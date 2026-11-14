@@ -19,7 +19,10 @@
   let unsubF = null;
 
   const fmtT = (t) => { t = Math.max(0, t || 0); return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`; };
-  const followOn = () => { const c = curItem(); return !!(c && F.isActive(c.song.id)); };
+  const followOn = () => { const c = curItem(); return !!(c && F.isActive(c.song.id) && !App.yt.isActive(c.song.id)); };
+  const Y = App.yt;
+  const ytOn = () => { const c = curItem(); return !!(c && Y.isActive(c.song.id)); };
+  let unsubY = null;
 
   function items() {
     if (st.eventId) {
@@ -186,7 +189,38 @@
     return '';
   }
 
+  function ytHTML(s) {
+    const ys = Y.state;
+    const leader = M.isLeader();
+    const synced = ys.marks.length >= 2;
+    return `
+      <div class="fl-card">
+        <div class="fl-head">
+          <span class="fl-icon fl-icon--yt">${I('play', 16)}</span>
+          <div class="grow stack-sm"><strong class="truncate">${esc(ys.title)}</strong><span class="xsmall sp-dim">YouTube${ys.duration ? ' · ' + fmtT(ys.duration) : ''}</span></div>
+          <button class="sp-chip" data-yt="close">${I('x', 13)} Cerrar</button>
+        </div>
+        ${ys.status === 'loading' ? '<p class="small sp-dim">Abriendo el video…</p>' : ''}
+        ${ys.status === 'error' ? `<p class="small sp-warn">${esc(ys.error)}</p>` : ''}
+        <span class="fl-conf ${synced ? 'fl-conf--alta' : 'fl-conf--media'}">${synced ? `✓ Letra sincronizada ${ys.shared ? 'por el líder' : 'en este celular'}` : 'Falta sincronizar la letra'}</span>
+      </div>
+      <div class="fl-sec">
+        <h4>${I('text', 14)} La letra sigue al video</h4>
+        <p class="small sp-dim">${synced
+          ? 'Dale play: los acordes y la letra cambian solos con el video. Si algo se adelanta, toca la línea que se está cantando mientras suena. Con el video en pausa, tocar una línea te lleva a esa parte.'
+          : 'Se hace una sola vez: toca <strong>Sincronizar</strong>, dale play y toca <strong>Ahora</strong> cada vez que empieza una línea (la intro también). Después, los acordes cambian solos con el video.'}</p>
+        <button class="fl-pick" data-rec="start">${I('hand', 16)} ${synced ? 'Volver a sincronizar' : 'Sincronizar la letra'}</button>
+        <div class="sp-row sp-toggles">
+          <span class="fl-marks">${ys.marks.length ? U.plural(ys.marks.length, 'marca', 'marcas') : 'Sin marcas'}</span>
+          ${ys.marks.length ? '<button class="sp-chip" data-yt="clear">Borrar</button>' : ''}
+          ${leader && synced && !ys.shared ? `<button class="sp-chip" data-yt="share">${I('users', 13)} Compartir con el equipo</button>` : ''}
+        </div>
+        <button class="sp-chip ${P.prefs.follow ? 'is-on' : ''}" data-pref="follow">${I('eye', 13)} Mover la pantalla con la letra</button>
+      </div>`;
+  }
+
   function followHTML(s) {
+    if (ytOn()) return ytHTML(s);
     const fs = F.state;
     const mine = fs.songId === s.id;
     const leader = M.isLeader();
@@ -216,6 +250,7 @@
         <div class="fl-sec">
           <h4>${I('text', 14)} La letra sigue a la música</h4>
           <p class="small sp-dim">Avanza compás por compás con la grabación. Si se adelanta o se atrasa, <strong>toca la línea que se está cantando</strong> mientras suena y queda ajustada. Con la música en pausa, tocar una línea te lleva a esa parte.${fs.shared ? ' Estás usando los ajustes que compartió el líder.' : ''}</p>
+          <button class="fl-pick fl-pick--ghost" data-rec="start">${I('hand', 16)} Sincronizar tocando cada línea</button>
           <div class="sp-row sp-toggles">
             <span class="fl-marks">${fs.marks.length ? U.plural(fs.marks.length, 'ajuste', 'ajustes') : 'Sin ajustes'}</span>
             ${fs.marks.length ? '<button class="sp-chip" data-fl="clear-marks">Borrar ajustes</button>' : ''}
@@ -250,12 +285,17 @@
         </div>`;
     }
     const links = M.songLinks(s.id).filter((l) => { const i = App.media.parse(l.url); return i && i.kind === 'audio'; });
+    const yts = M.songLinks(s.id).filter((l) => { const i = App.media.parse(l.url); return i && i.kind === 'youtube' && i.id; });
     return `
       <div class="fl-hero">
         <span class="fl-hero-icon">${I('wave', 24)}</span>
         <strong>Ensaya con la música</strong>
-        <p class="small sp-dim">Elige el audio de la alabanza: la app detecta el tempo, el click va con la banda y la letra sigue la canción.</p>
+        <p class="small sp-dim">Con el video de YouTube o el audio de la alabanza: los acordes y la letra cambian solos mientras suena.</p>
       </div>
+      ${yts.length ? `<div class="fl-sec fl-sec--yt">
+        <h4>${I('play', 14)} Con el video de YouTube</h4>
+        ${yts.map((l) => { const i = App.media.parse(l.url); const ok = Y.hasSync(s, i.id); return `<button class="fl-yt" data-yt-open="${esc(l.url)}">${App.media.thumb(i, 'sm')}<span class="grow stack-sm"><span class="strong small truncate">${esc(l.title || App.media.cachedTitle(i.url) || 'Video de YouTube')}</span><span class="xsmall ${ok ? 'fl-ok' : 'sp-dim'}">${ok ? '✓ Letra sincronizada' : 'Sin sincronizar'}</span></span>${I('chevron-right', 16)}</button>`; }).join('')}
+      </div><div class="fl-or"><span>o con el audio</span></div>` : ''}
       ${mine && fs.status === 'loading' ? `<div class="fl-progress"><div class="row-between xsmall"><span>Analizando el ritmo…</span><span class="mono" id="fl-pct">${Math.round(fs.progress * 100)}%</span></div><div class="fl-bar"><span id="fl-bar" style="width:${Math.round(fs.progress * 100)}%"></span></div></div>` : ''}
       ${mine && fs.status === 'error' ? `<p class="small sp-warn">${esc(fs.error)}</p>` : ''}
       <label class="fl-pick">${I('music', 16)} Elegir audio (MP3)<input type="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg" data-fl-file hidden></label>
@@ -298,7 +338,21 @@
       <button class="tr-mix ${st.panel ? 'is-on' : ''}" data-act="panel">${I('headphones', 15)}<span class="tr-mix-txt"><span>Música</span><span class="tr-lbl">${fs.loop ? 'Repitiendo A–B' : 'La letra la sigue'}</span></span></button>`;
   }
 
+  function ytTransport() {
+    const ys = Y.state, m = P.meter;
+    return `
+      <button class="tr-play ${ys.playing ? 'is-live' : ''}" data-act="play" aria-label="${ys.playing ? 'Pausar' : 'Reproducir'}">${I(ys.playing ? 'pause' : 'play', 20)}</button>
+      <div class="tr-seek">
+        <span class="mono" id="yt-cur">${fmtT(ys.time)}</span>
+        <input class="sp-range" type="range" id="yt-seek" min="0" max="${(ys.duration || 1).toFixed(2)}" step="0.1" value="${ys.time.toFixed(2)}" aria-label="Posición del video">
+        <span class="mono">${fmtT(ys.duration)}</span>
+      </div>
+      <div class="tr-pos"><span class="tr-chord mono" id="tr-chord">${esc(P.current.ev ? chordLabel(P.current.ev) : '—')}</span><span class="tr-lbl" id="tr-sec">${esc(P.current.ev ? P.current.ev.section || '' : (ys.marks.length >= 2 ? 'La letra sigue al video' : 'Falta sincronizar'))}</span></div>
+      <button class="tr-mix ${st.panel ? 'is-on' : ''}" data-act="panel">${I('play', 15)}<span class="tr-mix-txt"><span>Video</span><span class="tr-lbl">${ys.marks.length >= 2 ? 'Sincronizado' : 'Sin sincronizar'}</span></span></button>`;
+  }
+
   function transportHTML(s) {
+    if (Y.isActive(s.id)) return ytTransport();
     if (F.isActive(s.id)) return followTransport(s);
     const m = P.meter;
     const preset = P.PRESETS.find((p) => p.id === P.activePreset());
@@ -340,7 +394,8 @@
     const ev = st.eventId ? M.event(st.eventId) : null;
     ensureLoaded(cur);
 
-    el.innerHTML = `
+    const inner = el.querySelector('.stage-inner') || el;
+    inner.innerHTML = `
       <header class="stage-top">
         <div class="stage-title">
           <span class="stage-count mono">${st.index + 1}/${list.length}</span>
@@ -366,12 +421,13 @@
       </header>
       <div class="stage-main ${st.panel ? 'has-panel' : ''}">
         <div class="stage-body" id="stage-body">
-          <div class="chart stage-chart ${st.chords ? '' : 'chart--lyrics'} ${P.playing || st.panel || followOn() ? 'is-practice' : ''}" style="--chart-size:${st.size}px">
+          <div class="chart stage-chart ${st.chords ? '' : 'chart--lyrics'} ${P.playing || st.panel || followOn() || ytOn() ? 'is-practice' : ''} ${st.rec ? 'is-recording' : ''}" style="--chart-size:${st.size}px">
             ${App.chords.render(s.chart, { n, key: s.key, mode: st.mode, arrangement: s.arrangement })}
           </div>
           ${s.notes ? `<p class="stage-notes">${esc(s.notes)}</p>` : ''}
         </div>
         ${st.panel ? `<aside class="stage-panel" id="stage-panel" aria-label="Pistas de ensayo">${panelHTML(s)}</aside>` : ''}
+        ${st.rec ? recBarHTML() : ''}
       </div>
       <div class="stage-transport" id="stage-transport">${transportHTML(s)}</div>
       <footer class="stage-foot">
@@ -381,6 +437,100 @@
       </footer>
       <div class="stage-countin" id="stage-countin" hidden></div>`;
     highlight(P.current.ci, false);
+    el.classList.toggle('has-panel', !!st.panel);
+    el.classList.toggle('has-video', ytOn());
+    const dock = el.querySelector('#yt-dock');
+    const main = el.querySelector('.stage-main');
+    if (dock && main) dock.style.top = (main.offsetTop + 12) + 'px';
+    if (st.rec) paintRec();
+  }
+
+  // ---------------------------------------------------------------------
+  // Sincronizar la letra: tocar "Ahora" cuando empieza cada línea
+  // ---------------------------------------------------------------------
+  function lineText(ci) {
+    const cc = el && el.querySelector(`.cc[data-ci="${ci}"]`);
+    const line = cc && cc.closest('.cl');
+    if (!line) return '';
+    const words = Array.from(line.querySelectorAll('.cy')).map((x) => x.textContent).join('').replace(/\s+/g, ' ').trim();
+    if (words) return words;
+    const ev = P.plan.find((e) => e.ci === ci);
+    const chords = Array.from(line.querySelectorAll('.cc')).map((x) => x.textContent).join('  ');
+    return `${ev && ev.section ? ev.section + ': ' : ''}${chords}`;
+  }
+
+  function recBarHTML() {
+    const r = st.rec;
+    return `
+      <div class="rec-bar" id="rec-bar">
+        <div class="rec-info">
+          <span class="rec-head"><span class="rec-dot"></span> Sincronizando · línea <b id="rec-n">${Math.min(r.idx + 1, r.lines.length)}</b> de ${r.lines.length}</span>
+          <span class="rec-line" id="rec-line"></span>
+          <span class="xsmall sp-dim">Toca <strong>Ahora</strong> (o la barra espaciadora) justo cuando empieza esa línea.</span>
+        </div>
+        <button class="rec-tap" data-rec="tap">${I('hand', 22)}<span>Ahora</span></button>
+        <div class="rec-side">
+          <button class="sp-chip" data-rec="undo">${I('arrow-up', 12)} Deshacer</button>
+          <button class="sp-chip" data-rec="finish">${I('check', 12)} Terminar</button>
+        </div>
+      </div>`;
+  }
+
+  function paintRec() {
+    const r = st.rec;
+    if (!r || !el) return;
+    const ci = r.lines[r.idx];
+    el.querySelectorAll('.cl.is-next-line').forEach((x) => x.classList.remove('is-next-line'));
+    const n = el.querySelector('#rec-n');
+    if (n) n.textContent = Math.min(r.idx + 1, r.lines.length);
+    const lt = el.querySelector('#rec-line');
+    if (lt) lt.textContent = ci != null ? `«${lineText(ci)}»` : '';
+    const cc = ci != null && el.querySelector(`.cc[data-ci="${ci}"]`);
+    const line = cc && cc.closest('.cl');
+    if (line) {
+      line.classList.add('is-next-line');
+      const body = el.querySelector('#stage-body');
+      const br = body.getBoundingClientRect(), lr = line.getBoundingClientRect();
+      if (lr.height) body.scrollTo({ top: body.scrollTop + (lr.top - br.top) - br.height * 0.3, behavior: 'smooth' });
+    }
+  }
+
+  function recStart() {
+    const lines = P.plan.filter((e) => e.lineStart).map((e) => e.ci);
+    if (!lines.length) { App.ui.toast('Esta canción no tiene acordes escritos para sincronizar.', { kind: 'info' }); return; }
+    const src = ytOn() ? 'yt' : 'file';
+    st.rec = { idx: 0, lines, src };
+    if (src === 'yt') { Y.clearMarks(); Y.seek(0); Y.play(); } else { F.clearMarks(); F.seek(0); F.play(); }
+    keepScroll(draw);
+  }
+
+  function recTap() {
+    const r = st.rec;
+    if (!r) return;
+    const ci = r.lines[r.idx];
+    if (ci == null) { recFinish(); return; }
+    if (r.src === 'yt') Y.markNow(ci); else F.markAt(ci);
+    highlight(ci, false);
+    const btn = el.querySelector('.rec-tap');
+    if (btn) { btn.classList.remove('is-hit'); void btn.offsetWidth; btn.classList.add('is-hit'); }
+    r.idx++;
+    if (r.idx >= r.lines.length) recFinish(); else paintRec();
+  }
+
+  function recUndo() {
+    const r = st.rec;
+    if (!r || !r.idx) return;
+    r.idx--;
+    if (r.src === 'yt') Y.undoMark(); else F.undoMark();
+    paintRec();
+  }
+
+  function recFinish() {
+    const r = st.rec;
+    st.rec = null;
+    el.querySelectorAll('.cl.is-next-line').forEach((x) => x.classList.remove('is-next-line'));
+    keepScroll(draw);
+    if (r && r.idx >= 2) App.ui.toast(M.isLeader() ? '¡Listo! La letra quedó sincronizada. Puedes compartirla con el equipo.' : '¡Listo! La letra quedó sincronizada en este celular.');
   }
 
   function refreshTransport() {
@@ -458,7 +608,7 @@
         const ch = el.querySelector('#tr-chord');
         if (ch) ch.textContent = chordLabel(e.ev);
         const sec = el.querySelector('#tr-sec');
-        if (sec) sec.textContent = e.ev.section || '';
+        if (sec) sec.textContent = e.ev ? e.ev.section || '' : '';
         paintInstruments(e.ev, e.next);
         break;
       }
@@ -485,11 +635,30 @@
     }
   }
 
+  function onYt(e) {
+    if (!el) return;
+    const q = (id) => el.querySelector(id);
+    switch (e.type) {
+      case 'chord': if (!st.rec) onEngine(e); break;
+      case 'time': {
+        const seek = q('#yt-seek');
+        if (seek && !seek.matches(':active')) { seek.max = (Y.state.duration || 1).toFixed(2); seek.value = Y.state.time; }
+        const cur = q('#yt-cur');
+        if (cur) cur.textContent = fmtT(Y.state.time);
+        break;
+      }
+      case 'state': refreshTransport(); break;
+      case 'marks': if (!st.rec) refreshPanel(); break;
+      case 'yt': keepScroll(draw); break;
+    }
+  }
+
   function onFollow(e) {
     if (!el) return;
     const q = (id) => el.querySelector(id);
     switch (e.type) {
-      case 'beat': case 'chord': onEngine(e); break;
+      case 'beat': onEngine(e); break;
+      case 'chord': if (!st.rec) onEngine(e); break;
       case 'time': {
         const seek = q('#fl-seek');
         if (seek && !seek.matches(':active')) seek.value = F.state.time;
@@ -512,7 +681,7 @@
         if (q('#fl-left')) q('#fl-left').textContent = Math.ceil(F.mic.left);
         break;
       }
-      case 'marks': refreshPanel(); break;
+      case 'marks': if (!st.rec) refreshPanel(); break;
       case 'follow': case 'mic': keepScroll(draw); break;
     }
   }
@@ -538,6 +707,8 @@
     P.stop();
     F.pause();
     F.stopMic();
+    Y.close(false);
+    st.rec = null;
     setScrolling(false);
     st.index += delta;
     P.current.ci = -1; P.current.ev = null;
@@ -549,6 +720,7 @@
   }
 
   function togglePlay(fromCi) {
+    if (ytOn() && fromCi == null) { Y.toggle(); return; }
     if (followOn() && fromCi == null) { F.toggle(); return; }
     try { P.toggle(fromCi); } catch (err) { App.ui.toast(err.message || 'No se pudo iniciar el audio.', { kind: 'warn' }); }
   }
@@ -559,6 +731,8 @@
     if (e.key === 'Escape') close();
     else if (e.key === 'ArrowRight' || e.key === 'PageDown') changeSong(1);
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') changeSong(-1);
+    else if (st.rec && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); recTap(); }
+    else if (st.rec && e.key === 'Backspace') { e.preventDefault(); recUndo(); }
     else if (e.key === ' ') { e.preventDefault(); togglePlay(); }
     else if (e.key === 's' || e.key === 'S') { setScrolling(!st.scrolling); keepScroll(draw); }
   }
@@ -575,7 +749,32 @@
     const cur = curItem();
     const mode = e.target.closest('[data-mode]');
     if (mode) { st.mode = mode.dataset.mode; keepScroll(draw); return; }
-    const cc = e.target.closest('.cc[data-ci]') || (followOn() && e.target.closest('.cl') && e.target.closest('.cl').querySelector('.cc[data-ci]'));
+    const rec = e.target.closest('[data-rec]');
+    if (rec) {
+      const a = rec.dataset.rec;
+      if (a === 'start') recStart();
+      if (a === 'tap') recTap();
+      if (a === 'undo') recUndo();
+      if (a === 'finish') recFinish();
+      return;
+    }
+    if (st.rec && e.target.closest('#stage-body')) { recTap(); return; }
+    const ytOpen = e.target.closest('[data-yt-open]');
+    if (ytOpen) { P.stop(); F.pause(); Y.open(cur.song, ytOpen.dataset.ytOpen, el.querySelector('#yt-dock')); return; }
+    const yta = e.target.closest('[data-yt]');
+    if (yta) {
+      if (yta.dataset.yt === 'close') { Y.close(); el.querySelector('#yt-dock').hidden = true; }
+      if (yta.dataset.yt === 'clear') Y.clearMarks();
+      if (yta.dataset.yt === 'share') { Y.share(cur.song); App.ui.toast('Listo: todo el equipo verá la letra sincronizada con este video.'); }
+      return;
+    }
+    const cc = e.target.closest('.cc[data-ci]') || ((followOn() || ytOn()) && e.target.closest('.cl') && e.target.closest('.cl').querySelector('.cc[data-ci]'));
+    if (cc && ytOn()) {
+      const ci = Number(cc.dataset.ci);
+      if (Y.state.playing) { Y.markNow(ci); highlight(ci, false); App.ui.toast('Letra ajustada aquí ✓'); }
+      else if (!Y.playFrom(ci)) App.ui.toast('Primero sincroniza la letra con el video.', { kind: 'info' });
+      return;
+    }
     if (cc) {
       const ci = Number(cc.dataset.ci);
       if (followOn()) {
@@ -665,6 +864,7 @@
   function onInput(e) {
     const t = e.target;
     if (t.id === 'fl-seek') { F.seek(Number(t.value)); return; }
+    if (t.id === 'yt-seek') { Y.seek(Number(t.value)); return; }
     if ('flVol' in t.dataset) { F.setVol(Number(t.value) / 100); return; }
     if ('flClick' in t.dataset) {
       if (P.mix.click.mute && Number(t.value) > 0) P.toggleMute('click');
@@ -688,6 +888,7 @@
     if (opts && opts.music) { st.panel = true; st.panelTab = 'musica'; }
     el = document.createElement('div');
     el.className = 'stage';
+    el.innerHTML = '<div class="stage-inner"></div><div class="yt-dock" id="yt-dock" hidden></div>';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-label', 'Modo escenario');
     document.body.appendChild(el);
@@ -699,15 +900,18 @@
     document.addEventListener('keydown', onKey);
     unsub = P.on(onEngine);
     unsubF = F.on(onFollow);
+    unsubY = Y.on(onYt);
     el.addEventListener('change', (e) => {
       const f = e.target.closest('[data-fl-file]');
       if (!f || !f.files || !f.files[0]) return;
       const cur = curItem();
       st.panelTab = 'musica';
+      Y.close(false);
       F.load(f.files[0], { song: cur.song, name: f.files[0].name.replace(/\.[a-z0-9]+$/i, '') });
     });
     const first = curItem();
-    if (first) F.restore(first.song);
+    if (first && opts && opts.yt) Y.open(first.song, opts.yt, el.querySelector('#yt-dock'));
+    else if (first) F.restore(first.song);
     try { if (el.requestFullscreen) el.requestFullscreen().catch(() => {}); } catch (e) { /* sin pantalla completa */ }
     try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then((w) => { wakeLock = w; }).catch(() => {}); } catch (e) { /* sin wake lock */ }
   }
@@ -717,6 +921,9 @@
     P.stop();
     F.stopMic();
     F.unload(false);
+    Y.close(false);
+    if (unsubY) unsubY();
+    unsubY = null;
     if (unsubF) unsubF();
     unsubF = null;
     setScrolling(false);
