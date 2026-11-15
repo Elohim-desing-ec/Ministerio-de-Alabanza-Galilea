@@ -28,6 +28,7 @@ Está hecha con HTML, CSS y JavaScript puros. No hay que instalar ni compilar na
 | **Evento** | Setlist (ordenar arrastrando, tono por canción, quién dirige), equipo por puesto con avisos de conflictos, *Completar por rotación*, pestaña **Escuchar** (cada persona envía el link de cada alabanza y se escucha ahí mismo), chat del evento, notas y modo escenario. |
 | **Modo escenario + ensayo** | Letra grande canción por canción. Abajo: metrónomo con BPM (−/+ y *Tap*), compás, pulsos que se iluminan y cuenta inicial. **Pistas**: batería, bajo, piano, guitarra, pad y click generados con los acordes de la hoja, cada una con volumen, silenciar (M) y dejar sola (S), y atajos como *Solo batería* o *Sin batería*. **Instrumentos**: el acorde que suena se ilumina en la letra y se ve qué teclas toca el piano, la posición de guitarra y su rasgueo, la nota del bajo y el ritmo de la batería. Teclas: espacio = pistas, S = auto-scroll, ← → = canción. |
 | **Intro y entrada** | Al abrir: logo animado y el nombre del ministerio (se salta con un toque). Luego la pantalla de entrada: dos columnas en computadora, una en el celular. |
+| **Estudio** | Como Moises, gratis y en el celular: subes el MP3 y eliges *Voz e instrumental* o *Voz, batería, bajo y otros*. Mezclador con volumen, silenciar (M) y solo (S), atajos (*Sin voz*, *Sin batería*, *Solo batería*…). Velocidad de 50 % a 150 % sin cambiar el tono y tono de −6 a +6 sin cambiar la velocidad. Metrónomo pegado al pulso (½×, 1×, 2×), conteo de 1 o 2 compases, repetir A–B. Acordes detectados de la grabación y su tono; si se elige la alabanza, secciones (tocar para ir, doble toque para repetir) y la letra que sigue a la música. La separación es por procesamiento de sonido (sin IA): sirve para bajar o quitar voz, batería y bajo, aunque no queda tan limpia como la de Moises. Todo se guarda solo en ese celular. |
 | **Escuchar** | Grabaciones del repertorio y links que comparte el equipo (YouTube, YouTube Music, Spotify, SoundCloud, Deezer, Apple Music, Google Drive, Dropbox o archivos MP3). Suenan dentro de la app en un reproductor flotante que sigue sonando aunque cambies de pantalla. *Escuchar el setlist* los pone en fila. |
 | **Canciones** | Repertorio con búsqueda y filtros. **Importar PDF**: sube los PDF de LaCuerda.net (o pega el texto) y la app lee título, artista, tono, secciones, letra y acordes. Si la página trae varias versiones, eliges cuál guardar. |
 | **Canción** | Transponer, capo, notación C D E / Do Re Mi / números, solo letra para cantantes, dos columnas, arreglo editable, auto-scroll y editor con vista previa. Convierte canciones pegadas con los acordes encima de la letra. |
@@ -95,6 +96,8 @@ js/
     practice.js         metrónomo y pistas de ensayo (Web Audio)
     beat.js · align.js  detectar el pulso y acomodar la letra sola (reconoce los acordes)
     follow.js · ytsync.js  la letra sigue al MP3 o al video de YouTube
+    studio.js           Estudio: pistas, velocidad, tono, metrónomo y acordes
+  workers/stems.js      separador de pistas (en segundo plano)
     auth.js             inicio de sesión
     importer.js         lectura de canciones (LaCuerda.net y similares)
     model.js            consultas (conflictos, carga de servicio…)

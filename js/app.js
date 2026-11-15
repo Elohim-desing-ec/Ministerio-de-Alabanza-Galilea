@@ -14,6 +14,7 @@
     { route: 'cronograma', label: 'Cronograma', icon: 'columns', match: ['cronograma'], more: true },
     { route: 'canciones', label: 'Canciones', icon: 'music', match: ['canciones', 'cancion'] },
     { route: 'escuchar', label: 'Escuchar', icon: 'headphones', match: ['escuchar'] },
+    { route: 'estudio', label: 'Estudio', icon: 'wave', match: ['estudio'], more: true },
     { route: 'chat', label: 'Chat', icon: 'chat', match: ['chat'] },
     { route: 'equipo', label: 'Equipo', icon: 'users', match: ['equipo'], more: true },
     { route: 'asistente', label: 'Asistente', icon: 'sparkle', match: ['asistente'], more: true }

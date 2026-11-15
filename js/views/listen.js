@@ -145,6 +145,12 @@
             </div>
           </header>
 
+          <a class="ls-studio" href="#estudio">
+            <span class="ls-studio-icon">${I('wave', 22)}</span>
+            <span class="grow stack-sm"><span class="strong">Estudio</span><span class="small muted">Sube el MP3 y separa voz, batería y bajo; cambia velocidad y tono; metrónomo, acordes y letra.</span></span>
+            ${I('chevron-right', 18)}
+          </a>
+
           <form class="ls-paste" id="ls-paste" autocomplete="off">
             <span class="ls-paste-icon">${I('link', 18)}</span>
             <label class="sr-only" for="ls-url">Link</label>
