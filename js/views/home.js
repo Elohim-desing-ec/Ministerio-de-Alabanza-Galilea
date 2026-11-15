@@ -123,6 +123,75 @@
       </section>`;
   }
 
+  /** Mosaico de arriba: próximo servicio, equipo, racha, mes y repertorio. */
+  function bento(me, leader, mine, settings) {
+    const next = mine[0] || null;
+    const pending = mine.filter((x) => x.assignment.status === 'pending');
+    const nextAny = M.nextEvent((e) => e.assignments.some((a) => a.memberId));
+    const st = nextAny ? M.eventStats(nextAny) : null;
+    const pct = st && st.total ? Math.round((st.confirmed / st.total) * 100) : 0;
+    const R = 40, len = 2 * Math.PI * R;
+    const streak = M.streak(me.id);
+    const month = U.today().slice(0, 7);
+    const monthEvents = M.events().filter((e) => e.date.slice(0, 7) === month);
+    const mineMonth = monthEvents.filter((e) => e.assignments.some((a) => a.memberId === me.id && a.status !== 'declined')).length;
+    return `
+      <section class="bento" aria-label="Resumen">
+        <article class="bn bn--hero tilt">
+          <div class="bn-top"><span class="eyebrow">${U.fmtDate(U.today(), 'long')}</span><span class="bn-chip">${I('logo', 13)} ${esc(settings.churchName)}</span></div>
+          <h1 class="bn-hello">${U.greeting()},<br>${esc(U.firstName(me.name))}</h1>
+          <p class="bn-sub">${pending.length ? `Tienes <strong>${U.plural(pending.length, 'servicio', 'servicios')}</strong> por aceptar.` : next ? 'Todo listo para tu próximo servicio.' : 'No tienes servicios asignados por ahora.'}</p>
+          ${next ? `
+            <a class="bn-next" href="#evento-${esc(next.event.id)}">
+              <span class="bn-date"><b>${U.fmtDate(next.event.date, 'day')}</b><span>${U.fmtDate(next.event.date, 'mon')}</span></span>
+              <span class="grow stack-sm"><span class="bn-cap">Tu próximo servicio</span><strong>${esc(next.event.title)}</strong><span class="small muted">${U.relDay(next.event.date)} · ${U.fmtTime(next.event.time)} · ${esc(M.posLabel(next.assignment.position))}</span></span>
+              ${ui.status(next.assignment.status)}
+            </a>` : ''}
+          <div class="bn-actions">
+            ${next && next.assignment.status === 'pending' ? `<button class="btn btn--white" data-act="confirm" data-ev="${esc(next.event.id)}" data-slot="${esc(next.assignment.slot)}">${I('check', 16)} Acepto</button>` : ''}
+            ${next ? `<a class="btn ${next.assignment.status === 'pending' ? 'btn--ghost' : 'btn--white'}" href="#evento-${esc(next.event.id)}">Ver servicio ${I('arrow-right', 15)}</a>` : ''}
+            ${leader ? `<button class="btn ${next ? 'btn--ghost' : 'btn--white'}" data-act="new-event">${I('plus', 16)} Nuevo evento</button>` : ''}
+            <button class="btn btn--ghost" data-act="ask">${I('sparkle', 16)} Asistente</button>
+          </div>
+        </article>
+
+        <a class="bn tilt" ${nextAny ? `href="#evento-${esc(nextAny.id)}"` : 'href="#calendario"'}>
+          <span class="bn-cap">Equipo del próximo culto</span>
+          <div class="bn-row">
+            <span class="bn-ring">
+              <svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="bn-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EE7F0"/><stop offset="1" stop-color="#8B7BFF"/></linearGradient></defs>
+                <circle class="track" cx="50" cy="50" r="${R}" fill="none" stroke-width="9"/>
+                <circle class="bar" cx="50" cy="50" r="${R}" fill="none" stroke-width="9" stroke-dasharray="${len.toFixed(1)}" stroke-dashoffset="${(len * (1 - pct / 100)).toFixed(1)}" style="--len:${len.toFixed(1)}"/></svg>
+              <b>${pct}%</b>
+            </span>
+            <span class="stack-sm"><span class="bn-big">${st ? st.confirmed : 0}<small>/${st ? st.total : 0}</small></span><span class="bn-label">confirmados</span></span>
+          </div>
+          <span class="bn-foot"><span class="truncate">${nextAny ? esc(nextAny.title) + ' · ' + U.fmtDate(nextAny.date, 'short') : 'Sin cultos próximos'}</span>${I('arrow-right', 14)}</span>
+        </a>
+
+        <a class="bn tilt" href="#equipo-${esc(me.id)}">
+          <span class="bn-cap">Tu racha</span>
+          <div class="bn-row"><span class="flame flame--md flame--${streak.current >= 20 ? 'legend' : streak.current >= 10 ? 'blue' : streak.current >= 3 ? 'hot' : streak.current ? 'warm' : 'off'}">${App.streak.FLAME}</span><span class="bn-big">${streak.current}</span></div>
+          <span class="bn-label">${streak.current === 1 ? 'servicio cumplido' : 'servicios cumplidos seguidos'}</span>
+          <span class="bn-foot"><span>Mejor racha: ${streak.best}</span>${streak.level ? `<span>${streak.level.icon}</span>` : ''}</span>
+        </a>
+
+        <a class="bn tilt" href="#cronograma">
+          <span class="bn-cap">Este mes</span>
+          <span class="bn-big">${mineMonth}<small>/${monthEvents.length}</small></span>
+          <span class="bn-label">cultos en los que sirves</span>
+          <span class="bn-foot"><span>Ver el cronograma</span>${I('arrow-right', 14)}</span>
+        </a>
+
+        <a class="bn tilt" href="#estudio">
+          <span class="bn-cap">Repertorio</span>
+          <span class="bn-big">${M.songs().length}</span>
+          <span class="bn-label">alabanzas con letra y acordes</span>
+          <span class="bn-foot"><span>Ensayar en el Estudio</span>${I('arrow-right', 14)}</span>
+        </a>
+      </section>`;
+  }
+
   function topSongs() {
     if (!M.songs().length) {
       return `<section class="panel"><h2 class="panel-title">${I('music', 18)} Repertorio</h2><p class="small muted">Aún no hay canciones. ${M.isLeader() ? 'Impórtalas desde los PDF de LaCuerda.net.' : 'El líder las agregará pronto.'}</p>${M.isLeader() ? `<div><button class="btn btn--soft btn--sm" data-act="import">${I('arrow-up', 14)} Importar PDF</button></div>` : ''}</section>`;
@@ -151,17 +220,7 @@
 
       root.innerHTML = `
         <div class="view view--home">
-          <header class="view-head">
-            <div class="titles">
-              <span class="eyebrow">${U.fmtDate(U.today(), 'long')}</span>
-              <h1 class="view-title">${U.greeting()}, ${esc(U.firstName(me.name))}</h1>
-              <p class="muted">${esc(settings.churchName)} · ${esc(settings.ministryName)}</p>
-            </div>
-            <div class="view-actions">
-              <button class="btn btn--soft" data-act="ask">${I('sparkle', 16)} Preguntar al asistente</button>
-              ${leader ? `<button class="btn btn--primary" data-act="new-event">${I('plus', 16)} Nuevo evento</button>` : ''}
-            </div>
-          </header>
+          ${bento(me, leader, mine, settings)}
 
           ${leader ? onboarding() : ''}
 
